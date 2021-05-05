@@ -1,0 +1,64 @@
+---
+title: "Final Project"
+author: "David Nemirovsky & Jared Klug"
+output: github_document
+date: 5/13/21
+--- 
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(caret)
+library(ISLR)
+library(e1071)
+library(gtsummary)
+
+knitr::opts_chunk$set(
+  fig.align = "center",
+  fig.width = 7,
+  fig.asp = .6,
+  out.width = "80%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(37564)
+```
+
+## **EDA**
+
+```{r eda, message = F, warning = F}
+synthanic_df = 
+  read_csv("./data/train.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(survived = as.factor(survived), 
+         pclass = as.factor(pclass), 
+         sex = as.factor(sex), 
+         embarked = as.factor(embarked))
+
+train_df = 
+  synthanic_df %>% 
+  select(-c(ticket, cabin, name, passenger_id)) %>% 
+  drop_na()
+
+tbl_summary(train_df)
+
+featurePlot(x = select(mutate(train_df, 
+                              pclass = as.numeric(pclass), 
+                              sex = as.numeric(sex),
+                              embarked = as.numeric(embarked)),
+                       pclass:embarked), 
+            y = train_df$survived,
+            scales = list(x = list(relation = "free"), 
+                          y = list(relation = "free")),
+            plot = "density", 
+            auto.key = list(columns = 2))
+```
+
