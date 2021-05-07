@@ -50,15 +50,44 @@ train_df =
 
 tbl_summary(train_df)
 
-featurePlot(x = select(mutate(train_df, 
-                              pclass = as.numeric(pclass), 
-                              sex = as.numeric(sex),
-                              embarked = as.numeric(embarked)),
-                       pclass:embarked), 
-            y = train_df$survived,
-            scales = list(x = list(relation = "free"), 
-                          y = list(relation = "free")),
-            plot = "density", 
-            auto.key = list(columns = 2))
+#featurePlot(x = select(mutate(train_df, 
+#                              pclass = as.numeric(pclass), 
+#                              sex = as.numeric(sex),
+#                              embarked = as.numeric(embarked)),
+#                       pclass:embarked), 
+#            y = train_df$survived,
+#            scales = list(x = list(relation = "free"), 
+#                          y = list(relation = "free")),
+#            plot = "density", 
+#            auto.key = list(columns = 2))
+
+train_df %>% 
+  ggplot(aes(x = age, color = survived)) +
+  geom_density() + 
+  facet_grid(sex ~ pclass)
+
+train_df %>% 
+  filter(fare < 100) %>% 
+  ggplot(aes(x = fare, color = survived)) +
+  geom_density() + 
+  facet_grid(sex ~ pclass)
+
+train_df %>% 
+  #filter(fare < 100) %>% 
+  ggplot(aes(x = age, y = fare, color = survived)) +
+  geom_point() + 
+  facet_grid(sex ~ pclass)
+
+train_df %>% 
+  ggplot(aes(x = age, color = survived)) + 
+  geom_density() + 
+  facet_grid(sex ~ embarked)
+
+train_df %>% 
+  #filter(fare < 100) %>% 
+  ggplot(aes(x = age, y = fare, color = survived)) +
+  geom_point(alpha = 0.5) + 
+  facet_grid(sex ~ embarked)
+
 ```
 
