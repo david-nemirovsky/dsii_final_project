@@ -79,8 +79,8 @@ train_df %>%
   facet_grid(sex ~ pclass)
 
 train_df %>% 
-  ggplot(aes(x = age, color = survived)) + 
-  geom_density() + 
+  ggplot(aes(x = age, fill = survived)) + 
+  geom_density(alpha = 0.75) + 
   facet_grid(sex ~ embarked)
 
 train_df %>% 
