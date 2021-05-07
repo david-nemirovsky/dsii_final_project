@@ -1,0 +1,13 @@
+---
+title: "Report"
+author: "David Nemirovsky & Jared Klug"
+output: pdf_document
+---
+
+# Introduction
+
+# EDA
+
+# Models
+
+# Conclusion
