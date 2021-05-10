@@ -11,6 +11,8 @@ library(caret)
 library(ISLR)
 library(e1071)
 library(gtsummary)
+library(ranger)
+library(gbm)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -94,7 +96,7 @@ train_df %>%
 ```{r models}
 set.seed(37564)
 
-ctrl = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 10)
+ctrl = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 5)
 
 mod_glm = train(survived ~ .,
                 na.action = na.exclude, 
@@ -114,7 +116,7 @@ mod_mars = train(survived ~ .,
 
 #mod_knn = train(survived ~ .,
 #                na.action = na.exclude, 
-#                data = train_df, 
+#                data = train_df,
 #                method = "knn",
 #                metric = "ROC", 
 #                preProcess = c("center","scale"),
@@ -125,11 +127,26 @@ summary(mod_glm)
 summary(mod_mars)
 #summary(mod_knn)
 
+mod_rf = train(survived ~ .,
+               na.action = na.exclude,
+               data = train_df,
+               method = "gbm",
+               tuneGrid = expand.grid(n.trees = seq(50, 200, 50),
+                                      interaction.depth = 1:6,
+                                      shrinkage = c(0.001, 0.003, 0.005),
+                                      n.minobsinnode = 1),
+               metric = "ROC",
+               trControl = ctrl,
+               verbose = F
+)
+
 ggplot(mod_mars, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
 
 res = resamples(list(GLM = mod_glm, MARS = mod_mars
                #, KNN = mod_knn
                ))
+
+res_rf = resamples(list(Boost = mod_rf))
 bwplot(res, metric = "ROC", main = "AUC for CV of Various Models")
 ```
 
