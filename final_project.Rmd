@@ -11,6 +11,8 @@ library(caret)
 library(ISLR)
 library(e1071)
 library(gtsummary)
+library(vip)
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -35,7 +37,7 @@ set.seed(37564)
 ## **EDA**
 
 ```{r eda, message = F, warning = F}
-synthanic_df = 
+titanic_df = 
   read_csv("./data/train.csv") %>% 
   janitor::clean_names() %>% 
   mutate(survived = fct_recode(as.factor(survived), yes = "1", no = "0"), 
@@ -44,38 +46,38 @@ synthanic_df =
          embarked = as.factor(embarked))
 
 train_df = 
-  synthanic_df %>% 
+  titanic_df %>% 
   select(-c(ticket, cabin, name, passenger_id)) %>% 
   drop_na()
 
 tbl_summary(train_df)
 
-#featurePlot(x = select(mutate(train_df, 
-#                              pclass = as.numeric(pclass), 
-#                              sex = as.numeric(sex),
-#                              embarked = as.numeric(embarked)),
-#                       pclass:embarked), 
-#            y = train_df$survived,
-#            scales = list(x = list(relation = "free"), 
-#                          y = list(relation = "free")),
-#            plot = "density", 
-#            auto.key = list(columns = 2))
+featurePlot(x = select(mutate(train_df, 
+                              pclass = as.numeric(pclass), 
+                              sex = as.numeric(sex),
+                              embarked = as.numeric(embarked)),
+                       pclass:embarked), 
+            y = train_df$survived,
+            scales = list(x = list(relation = "free"), 
+                          y = list(relation = "free")),
+            plot = "density", 
+            auto.key = list(columns = 2))
 
 train_df %>% 
-  ggplot(aes(x = age, color = survived)) +
-  geom_density() + 
+  ggplot(aes(x = age, fill = survived)) +
+  geom_density(alpha = 0.75) + 
   facet_grid(sex ~ pclass)
 
 train_df %>% 
   filter(fare < 100) %>% 
-  ggplot(aes(x = fare, color = survived)) +
-  geom_density() + 
+  ggplot(aes(x = fare, fill = survived)) +
+  geom_density(alpha = 0.75) + 
   facet_grid(sex ~ pclass)
 
 train_df %>% 
   #filter(fare < 100) %>% 
   ggplot(aes(x = age, y = fare, color = survived)) +
-  geom_point() + 
+  geom_point(alpha = 0.75) + 
   facet_grid(sex ~ pclass)
 
 train_df %>% 
@@ -86,17 +88,17 @@ train_df %>%
 train_df %>% 
   #filter(fare < 100) %>% 
   ggplot(aes(x = age, y = fare, color = survived)) +
-  geom_point(alpha = 0.5) + 
+  geom_point(alpha = 0.75) + 
   facet_grid(sex ~ embarked)
 
 ```
 
-```{r models}
+## **Model Training**
+
+```{r models, message = F, warning = F}
 set.seed(37564)
 
-ctrl = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 10)
-
-ctrl2 = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 2)
+ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
 mod_glm = train(survived ~ .,
                 na.action = na.exclude, 
@@ -105,14 +107,35 @@ mod_glm = train(survived ~ .,
                 family = "binomial", 
                 metric = "ROC", 
                 trControl = ctrl)
+summary(mod_glm)
+
+mod_enet = train(survived ~ .,
+                 na.action = na.exclude, 
+                 data = train_df, 
+                 method = "glmnet", 
+                 family = "binomial", 
+                 metric = "ROC", 
+                 tuneGrid = expand.grid(alpha = seq(0, 0.5, length = 6), 
+                                        lambda = exp(seq(-4, -8, length = 50))),
+                 trControl = ctrl)
+tuning_plot_enet = 
+  ggplot(mod_enet, highlight = T) + 
+  ggtitle("Elastic Net Tuning Parameters") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_enet$bestTune
 
 mod_mars = train(survived ~ ., 
                  na.action = na.exclude, 
                  data = train_df, 
                  method = "earth",
-                 tuneGrid = expand.grid(degree = 1:3, nprune = 10:17), 
+                 tuneGrid = expand.grid(degree = 1:3, nprune = 5:15), 
                  metric = "ROC", 
                  trControl = ctrl)
+tuning_plot_mars = 
+  ggplot(mod_mars, highlight = T) + 
+  ggtitle("MARS Tuning Parameters") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_mars$bestTune
 
 mod_knn = train(survived ~ .,
                 na.action = na.exclude, 
@@ -120,19 +143,73 @@ mod_knn = train(survived ~ .,
                 method = "knn",
                 metric = "ROC", 
                 preProcess = c("center","scale"),
-                tuneGrid = data.frame(k = seq(155, 185, by = 5)), 
+                tuneGrid = data.frame(k = seq(1, 30, by = 1)), 
                 trControl = ctrl)
+tuning_plot_knn = 
+  ggplot(mod_knn, highlight = T) + 
+  ggtitle("KNN Tuning Parameters") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_knn$bestTune
 
-summary(mod_glm)
-summary(mod_mars)
-summary(mod_knn)
+tuning_plot_enet + tuning_plot_mars + tuning_plot_knn
 
-ggplot(mod_mars, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
+res = resamples(list(GLM = mod_glm, ENET = mod_enet, MARS = mod_mars, KNN = mod_knn))
+summary(res)
 
-ggplot(mod_knn, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
+bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
+```
 
-res = resamples(list(GLM = mod_glm, MARS = mod_mars, KNN = mod_knn))
+## **Variable Importance**
 
-bwplot(res, metric = "ROC", main = "ROC for 10-Fold CV Using Various Models")
+```{r vip, message = F, warning = F}
+set.seed(37564)
+
+#vip(mod_glm, 
+#    method = "permute", 
+#    train = train_df,
+#    target = "survived",
+#    metric = "auc",
+#    reference_class = c("yes", "no"),
+#    nsim = 1000,
+#    pred_wrapper = predict,
+#    geom = "boxplot", 
+#    all_permutations = T,
+#    mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+#vip(mod_enet, 
+#    method = "permute", 
+#    train = train_df,
+#    target = "survived",
+#    metric = "auc",
+#    reference_class = c("yes", "no"),
+#    nsim = 1000,
+#    pred_wrapper = predict,
+#    geom = "boxplot", 
+#    all_permutations = T,
+#    mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+vip(mod_mars, 
+    method = "permute", 
+    train = train_df,
+    target = "survived",
+    metric = "auc",
+    reference_class = c("yes", "no"),
+    nsim = 1000,
+    pred_wrapper = predict,
+    geom = "boxplot", 
+    all_permutations = T,
+    mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+#vip(mod_knn, 
+#    method = "permute", 
+#    train = train_df,
+#    target = "survived",
+#    metric = "auc",
+#    reference_class = c("yes", "no"),
+#    nsim = 1000,
+#    pred_wrapper = predict,
+#    geom = "boxplot", 
+#    all_permutations = T,
+#    mapping = aes_string(fill = "Variable", alpha = 0.75))
 ```
 
