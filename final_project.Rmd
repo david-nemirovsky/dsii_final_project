@@ -134,13 +134,26 @@ mod_rf = train(survived ~ .,
                na.action = na.exclude,
                data = train_df,
                method = "gbm",
-               tuneGrid = expand.grid(n.trees = seq(50, 200, 50),
-                                      interaction.depth = 1:6,
-                                      shrinkage = c(0.001, 0.003, 0.005),
+               tuneGrid = expand.grid(n.trees = 300,
+                                      interaction.depth = 7,
+                                      shrinkage = 0.03,
                                       n.minobsinnode = 1),
                metric = "ROC",
                trControl = ctrl,
                verbose = F
+)
+
+summary(mod_rf)
+
+ggplot(mod_rf, highlight = T)
+
+mod_svm = train(survived ~ .,
+                na.action = na.exclude,
+                data = train_df,
+                method = "svmLinear",
+                tuneGrid = expand.grid(C = exp(seq(-2,5, len = 20))),
+                metric = "ROC",
+                trControl = ctrl
 )
 
 ggplot(mod_mars, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
@@ -148,6 +161,8 @@ ggplot(mod_mars, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
 ggplot(mod_knn, highlight = T) + theme(plot.title = element_text(hjust = 0.5))
 
 res = resamples(list(GLM = mod_glm, MARS = mod_mars, KNN = mod_knn))
+
+res = resamples(list(GLM = mod_glm, boost = mod_rf))
 
 bwplot(res, metric = "ROC", main = "ROC for 10-Fold CV Using Various Models")
 
