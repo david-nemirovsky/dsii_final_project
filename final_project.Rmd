@@ -67,7 +67,12 @@ miss_surv = train_nas %>%
 
 miss_surv
 
-all_surv = 
+all_surv = train_df %>% 
+  group_by(survived) %>% 
+  summarise(count = n())
+
+all_surv 
+
 #calc percentage of NA ages that survived
 
 tbl_summary(train_df)
