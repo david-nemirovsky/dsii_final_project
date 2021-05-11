@@ -15,11 +15,8 @@ library(vip)
 library(patchwork)
 library(ranger)
 library(gbm)
-<<<<<<< HEAD
 library(pROC)
-=======
 library(visdat)
->>>>>>> d791f075bf4885f36e1ca9c141d016173fd37214
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -213,7 +210,6 @@ vip(mod_boost,
 
 ## Prediction
 
-<<<<<<< HEAD
 ```{r pred, message = F, warning = F}
 set.seed(37564)
 
@@ -236,19 +232,6 @@ diff_df =
     diff = ifelse(boost_surv == mars_surv, "Y", "N"))
 diff_df %>% 
   filter(diff == "N")
-=======
-vip(mod_boost, 
-    method = "permute", 
-    train = train_df,
-    target = "survived",
-    metric = "auc",
-    reference_class = c("yes", "no"),
-    nsim = 200,
-    pred_wrapper = predict,
-    geom = "boxplot", 
-    all_permutations = T,
-    mapping = aes_string(fill = "Variable", alpha = 0.75))
->>>>>>> d791f075bf4885f36e1ca9c141d016173fd37214
 ```
 
 ## test/kaggle output
