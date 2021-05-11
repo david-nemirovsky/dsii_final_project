@@ -57,9 +57,22 @@ train_df =
   select(-c(ticket, cabin, name, passenger_id)) %>% 
   drop_na()
 
+#Missing data eda
 train_nas = 
   titanic_df %>% 
   select(-c(ticket, cabin, name, passenger_id))
+
+vis_miss(train_nas)
+
+miss_surv = train_nas %>% 
+  filter(is.na(age)) %>% 
+  group_by(survived) %>% 
+  summarise(count = n())
+
+miss_surv
+
+all_surv = 
+#calc percentage of NA ages that survived
 
 tbl_summary(train_df)
 
