@@ -13,6 +13,8 @@ library(e1071)
 library(gtsummary)
 library(vip)
 library(patchwork)
+library(ranger)
+library(gbm)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -90,7 +92,6 @@ train_df %>%
   ggplot(aes(x = age, y = fare, color = survived)) +
   geom_point(alpha = 0.75) + 
   facet_grid(sex ~ embarked)
-
 ```
 
 ## **Model Training**
@@ -120,7 +121,7 @@ mod_enet = train(survived ~ .,
                  trControl = ctrl)
 tuning_plot_enet = 
   ggplot(mod_enet, highlight = T) + 
-  ggtitle("Elastic Net Tuning Parameters") +
+  ggtitle("Elastic Net") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_enet$bestTune
 
@@ -133,7 +134,7 @@ mod_mars = train(survived ~ .,
                  trControl = ctrl)
 tuning_plot_mars = 
   ggplot(mod_mars, highlight = T) + 
-  ggtitle("MARS Tuning Parameters") +
+  ggtitle("MARS") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_mars$bestTune
 
@@ -147,15 +148,31 @@ mod_knn = train(survived ~ .,
                 trControl = ctrl)
 tuning_plot_knn = 
   ggplot(mod_knn, highlight = T) + 
-  ggtitle("KNN Tuning Parameters") +
+  ggtitle("KNN") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_knn$bestTune
 
-tuning_plot_enet + tuning_plot_mars + tuning_plot_knn
+mod_boost = train(survived ~ .,
+                  na.action = na.exclude,
+                  data = train_df,
+                  method = "gbm",
+                  tuneGrid = expand.grid(n.trees = c(1000, 2000, 3000),
+                                         interaction.depth = 5:10,
+                                         shrinkage = c(0.001, 0.003, 0.005), 
+                                         n.minobsinnode = 1),
+                  metric = "ROC",
+                  trControl = ctrl,
+                  verbose = F)
+#tuning_plot_boost = 
+  ggplot(mod_boost, highlight = T) + 
+  ggtitle("Boosting") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_boost$bestTune
 
-res = resamples(list(GLM = mod_glm, ENET = mod_enet, MARS = mod_mars, KNN = mod_knn))
+(tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
+
+res = resamples(list(GLM = mod_glm, ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost))
 summary(res)
-
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
 ```
 
