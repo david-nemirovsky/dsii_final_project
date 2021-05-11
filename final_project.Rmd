@@ -15,6 +15,7 @@ library(vip)
 library(patchwork)
 library(ranger)
 library(gbm)
+library(visdat)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -51,6 +52,10 @@ train_df =
   titanic_df %>% 
   select(-c(ticket, cabin, name, passenger_id)) %>% 
   drop_na()
+
+train_nas = 
+  titanic_df %>% 
+  select(-c(ticket, cabin, name, passenger_id))
 
 tbl_summary(train_df)
 
@@ -269,10 +274,27 @@ vip(mod_boost,
     target = "survived",
     metric = "auc",
     reference_class = c("yes", "no"),
-    nsim = 1000,
+    nsim = 200,
     pred_wrapper = predict,
     geom = "boxplot", 
     all_permutations = T,
     mapping = aes_string(fill = "Variable", alpha = 0.75))
+```
+
+## test/kaggle output
+```{r}
+train_df = 
+  titanic_df %>% 
+  select(-c(ticket, cabin, name, passenger_id)) %>% 
+  drop_na()
+
+test_df = read_csv("./data/test.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(pclass = as.factor(pclass), 
+         sex = as.factor(sex), 
+         embarked = as.factor(embarked)) %>% 
+  select(-c(ticket, cabin, name, passenger_id))
+  
+
 ```
 
