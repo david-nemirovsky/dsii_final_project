@@ -15,6 +15,7 @@ library(vip)
 library(patchwork)
 library(ranger)
 library(gbm)
+library(pROC)
 library(visdat)
 
 knitr::opts_chunk$set(
@@ -124,15 +125,7 @@ set.seed(37564)
 
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
-mod_glm = train(survived ~ .,
-                na.action = na.exclude, 
-                data = train_df, 
-                method = "glm", 
-                family = "binomial", 
-                metric = "ROC", 
-                trControl = ctrl)
-summary(mod_glm)
-
+set.seed(37564)
 mod_enet = train(survived ~ .,
                  na.action = na.exclude, 
                  data = train_df, 
@@ -148,6 +141,7 @@ tuning_plot_enet =
   theme(plot.title = element_text(hjust = 0.5))
 mod_enet$bestTune
 
+set.seed(37564)
 mod_mars = train(survived ~ ., 
                  na.action = na.exclude, 
                  data = train_df, 
@@ -161,6 +155,7 @@ tuning_plot_mars =
   theme(plot.title = element_text(hjust = 0.5))
 mod_mars$bestTune
 
+set.seed(37564)
 mod_knn = train(survived ~ .,
                 na.action = na.exclude, 
                 data = train_df, 
@@ -175,14 +170,14 @@ tuning_plot_knn =
   theme(plot.title = element_text(hjust = 0.5))
 mod_knn$bestTune
 
+set.seed(37564)
 mod_boost = train(survived ~ .,
                   na.action = na.exclude,
                   data = train_df,
                   method = "gbm",
-                  distribution = "adaboost",
-                  tuneGrid = expand.grid(n.trees = c(2000, 3000),
-                                         interaction.depth = 2:7,
-                                         shrinkage = c(0.005, 0.007, 0.009), 
+                  tuneGrid = expand.grid(n.trees = c(1000, 2000, 3000),
+                                         interaction.depth = 1:10,
+                                         shrinkage = c(0.001, 0.003, 0.005), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
                   trControl = ctrl,
@@ -193,42 +188,9 @@ tuning_plot_boost =
   theme(plot.title = element_text(hjust = 0.5))
 mod_boost$bestTune
 
-mod_svm = train(survived ~ .,
-                na.action = na.exclude,
-                data = train_df,
-                preProcess = c("scale", "center"),
-                method = "svmLinear",
-                tuneGrid = expand.grid(C = exp(seq(-2,3, len = 20))),
-                metric = "ROC",
-                trControl = ctrl
-)
-
-tuning_plot_svm_linear = 
-  ggplot(mod_svm, highlight = T) + 
-  ggtitle("SVM Linear") +
-  theme(plot.title = element_text(hjust = 0.5))
-mod_svm$bestTune
-
-mod_svm_radial = train(survived ~ .,
-                na.action = na.exclude,
-                data = train_df,
-                preProcess = c("scale", "center"),
-                method = "svmRadialSigma",
-                tuneGrid = expand.grid(C = exp(seq(-2,3, len = 10)),
-                                       sigma = exp(seq(-8,0,len=10))),
-                metric = "ROC",
-                trControl = ctrl
-)
-
-tuning_plot_svm_radial = 
-  ggplot(mod_svm_radial, highlight = T) + 
-  ggtitle("SVM Radial") +
-  theme(plot.title = element_text(hjust = 0.5))
-mod_svm_radial$bestTune
-
 (tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
 
-res = resamples(list(GLM = mod_glm, ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM_lin = mod_svm, SVM_rad = mod_svm_radial ))
+res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost))
 summary(res)
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
 ```
@@ -238,65 +200,43 @@ bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Mo
 ```{r vip, message = F, warning = F}
 set.seed(37564)
 
-#vip(mod_glm, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_enet, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-vip(mod_mars, 
-    method = "permute", 
-    train = train_df,
-    target = "survived",
-    metric = "auc",
-    reference_class = c("yes", "no"),
-    nsim = 1000,
-    pred_wrapper = predict,
-    geom = "boxplot", 
-    all_permutations = T,
-    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_knn, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
 vip(mod_boost, 
     method = "permute", 
     train = train_df,
     target = "survived",
     metric = "auc",
     reference_class = c("yes", "no"),
-    nsim = 200,
+    nsim = 30,
     pred_wrapper = predict,
     geom = "boxplot", 
     all_permutations = T,
     mapping = aes_string(fill = "Variable", alpha = 0.75))
+```
+
+## Prediction
+
+```{r pred, message = F, warning = F}
+set.seed(37564)
+
+test_df = 
+  read_csv("./data/test.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(pclass = as.factor(pclass), 
+         sex = as.factor(sex), 
+         embarked = as.factor(embarked)) %>% 
+  select(-c(ticket, cabin, name, passenger_id)) %>% 
+  drop_na()
+
+pred_mars = predict(mod_mars, newdata = test_df, type = "prob")[,1]
+pred_boost = predict(mod_boost, newdata = test_df, type = "prob")[,1]
+diff_df = 
+  tibble(pred_boost, pred_mars) %>% 
+  mutate(
+    boost_surv = ifelse(pred_boost > 0.5, "Y", "N"), 
+    mars_surv = ifelse(pred_mars > 0.5, "Y", "N"), 
+    diff = ifelse(boost_surv == mars_surv, "Y", "N"))
+diff_df %>% 
+  filter(diff == "N")
 ```
 
 ## test/kaggle output
