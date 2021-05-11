@@ -175,9 +175,10 @@ mod_boost = train(survived ~ .,
                   na.action = na.exclude,
                   data = train_df,
                   method = "gbm",
-                  tuneGrid = expand.grid(n.trees = c(1000, 2000, 3000),
-                                         interaction.depth = 1:10,
-                                         shrinkage = c(0.001, 0.003, 0.005), 
+                  distribution = "adaboost",
+                  tuneGrid = expand.grid(n.trees = c(2000, 3000),
+                                         interaction.depth = 2:7,
+                                         shrinkage = c(0.005, 0.007, 0.009), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
                   trControl = ctrl,
@@ -188,9 +189,42 @@ tuning_plot_boost =
   theme(plot.title = element_text(hjust = 0.5))
 mod_boost$bestTune
 
+set.seed(37564)
+mod_svm = train(survived ~ .,
+                na.action = na.exclude,
+                data = train_df,
+                preProcess = c("scale", "center"),
+                method = "svmLinear",
+                tuneGrid = expand.grid(C = exp(seq(-2,3, len = 20))),
+                metric = "ROC",
+                trControl = ctrl)
+tuning_plot_svm_linear = 
+  ggplot(mod_svm, highlight = T) + 
+  ggtitle("SVM Linear") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_svm$bestTune
+
+set.seed(37564)
+mod_svm_radial = train(survived ~ .,
+                na.action = na.exclude,
+                data = train_df,
+                preProcess = c("scale", "center"),
+                method = "svmRadialSigma",
+                tuneGrid = expand.grid(C = exp(seq(-2,3, len = 10)),
+                                       sigma = exp(seq(-8,0,len=10))),
+                metric = "ROC",
+                trControl = ctrl
+)
+
+tuning_plot_svm_radial = 
+  ggplot(mod_svm_radial, highlight = T) + 
+  ggtitle("SVM Radial") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_svm_radial$bestTune
+
 (tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
 
-res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost))
+res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM_lin = mod_svm, SVM_rad = mod_svm_radial ))
 summary(res)
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
 ```
