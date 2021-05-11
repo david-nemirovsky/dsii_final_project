@@ -152,8 +152,8 @@ mod_boost = train(survived ~ .,
                   na.action = na.exclude,
                   data = train_df,
                   method = "gbm",
-                  tuneGrid = expand.grid(n.trees = c(1000, 3000),
-                                         interaction.depth = 1:6,
+                  tuneGrid = expand.grid(n.trees = c(1000, 2000, 3000),
+                                         interaction.depth = 1:10,
                                          shrinkage = c(0.001, 0.003, 0.005), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
@@ -176,42 +176,6 @@ bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Mo
 
 ```{r vip, message = F, warning = F}
 set.seed(37564)
-
-#vip(mod_enet, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_mars, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 30,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_knn, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
 
 vip(mod_boost, 
     method = "permute", 
