@@ -939,48 +939,7 @@ set.seed(37564)
 
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
-mod_glm = train(survived ~ .,
-                na.action = na.exclude, 
-                data = train_df, 
-                method = "glm", 
-                family = "binomial", 
-                metric = "ROC", 
-                trControl = ctrl)
-summary(mod_glm)
-```
-
-    ## 
-    ## Call:
-    ## NULL
-    ## 
-    ## Deviance Residuals: 
-    ##     Min       1Q   Median       3Q      Max  
-    ## -2.7220  -0.6460  -0.3796   0.6329   2.4461  
-    ## 
-    ## Coefficients:
-    ##              Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  4.432931   0.535936   8.271  < 2e-16 ***
-    ## pclass2     -1.189637   0.329197  -3.614 0.000302 ***
-    ## pclass3     -2.395220   0.343356  -6.976 3.04e-12 ***
-    ## sexmale     -2.637859   0.223006 -11.829  < 2e-16 ***
-    ## age         -0.043308   0.008322  -5.204 1.95e-07 ***
-    ## sib_sp      -0.362925   0.129290  -2.807 0.005000 ** 
-    ## parch       -0.060365   0.123944  -0.487 0.626233    
-    ## fare         0.001451   0.002595   0.559 0.576143    
-    ## embarkedQ   -0.823379   0.600200  -1.372 0.170113    
-    ## embarkedS   -0.402848   0.274556  -1.467 0.142303    
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## (Dispersion parameter for binomial family taken to be 1)
-    ## 
-    ##     Null deviance: 960.90  on 711  degrees of freedom
-    ## Residual deviance: 632.34  on 702  degrees of freedom
-    ## AIC: 652.34
-    ## 
-    ## Number of Fisher Scoring iterations: 5
-
-``` r
+set.seed(37564)
 mod_enet = train(survived ~ .,
                  na.action = na.exclude, 
                  data = train_df, 
@@ -992,15 +951,16 @@ mod_enet = train(survived ~ .,
                  trControl = ctrl)
 tuning_plot_enet = 
   ggplot(mod_enet, highlight = T) + 
-  ggtitle("Elastic Net Tuning Parameters") +
+  ggtitle("Elastic Net") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_enet$bestTune
 ```
 
     ##     alpha      lambda
-    ## 167   0.3 0.001238471
+    ## 231   0.4 0.003883492
 
 ``` r
+set.seed(37564)
 mod_mars = train(survived ~ ., 
                  na.action = na.exclude, 
                  data = train_df, 
@@ -1010,15 +970,16 @@ mod_mars = train(survived ~ .,
                  trControl = ctrl)
 tuning_plot_mars = 
   ggplot(mod_mars, highlight = T) + 
-  ggtitle("MARS Tuning Parameters") +
+  ggtitle("MARS") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_mars$bestTune
 ```
 
     ##    nprune degree
-    ## 13      6      2
+    ## 28     10      3
 
 ``` r
+set.seed(37564)
 mod_knn = train(survived ~ .,
                 na.action = na.exclude, 
                 data = train_df, 
@@ -1029,7 +990,7 @@ mod_knn = train(survived ~ .,
                 trControl = ctrl)
 tuning_plot_knn = 
   ggplot(mod_knn, highlight = T) + 
-  ggtitle("KNN Tuning Parameters") +
+  ggtitle("KNN") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_knn$bestTune
 ```
@@ -1038,13 +999,36 @@ mod_knn$bestTune
     ## 8 8
 
 ``` r
-tuning_plot_enet + tuning_plot_mars + tuning_plot_knn
+set.seed(37564)
+mod_boost = train(survived ~ .,
+                  na.action = na.exclude,
+                  data = train_df,
+                  method = "gbm",
+                  tuneGrid = expand.grid(n.trees = c(1000, 3000),
+                                         interaction.depth = 1:6,
+                                         shrinkage = c(0.001, 0.003, 0.005), 
+                                         n.minobsinnode = 1),
+                  metric = "ROC",
+                  trControl = ctrl,
+                  verbose = F)
+tuning_plot_boost = 
+  ggplot(mod_boost, highlight = T) + 
+  ggtitle("Boosting") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_boost$bestTune
+```
+
+    ##    n.trees interaction.depth shrinkage n.minobsinnode
+    ## 36    3000                 6     0.005              1
+
+``` r
+(tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
 ```
 
 <img src="final_project_files/figure-gfm/models-1.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
-res = resamples(list(GLM = mod_glm, ENET = mod_enet, MARS = mod_mars, KNN = mod_knn))
+res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost))
 summary(res)
 ```
 
@@ -1052,29 +1036,29 @@ summary(res)
     ## Call:
     ## summary.resamples(object = res)
     ## 
-    ## Models: GLM, ENET, MARS, KNN 
+    ## Models: ENET, MARS, KNN, BOOST 
     ## Number of resamples: 50 
     ## 
     ## ROC 
-    ##           Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## GLM  0.7356322 0.8164989 0.8458204 0.8527283 0.8907659 0.9556650    0
-    ## ENET 0.7311166 0.8315887 0.8547753 0.8533538 0.8805272 0.9190199    0
-    ## MARS 0.7413793 0.8299920 0.8695679 0.8652635 0.9005542 0.9536125    0
-    ## KNN  0.7582102 0.8263823 0.8440066 0.8549761 0.8947044 0.9527915    0
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.7380952 0.8165637 0.8446176 0.8531036 0.8905434 0.9556650    0
+    ## MARS  0.7479475 0.8370589 0.8653053 0.8657740 0.8949097 0.9474548    0
+    ## KNN   0.7676519 0.8245074 0.8552736 0.8550413 0.8808498 0.9330870    0
+    ## BOOST 0.7654370 0.8421784 0.8723317 0.8750384 0.9051438 0.9534884    0
     ## 
     ## Sens 
-    ##           Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## GLM  0.6904762 0.8139535 0.8571429 0.8495127 0.8809524 0.9761905    0
-    ## ENET 0.7380952 0.8187984 0.8571429 0.8519158 0.8809524 0.9523810    0
-    ## MARS 0.6904762 0.8139535 0.8604651 0.8579845 0.9047619 1.0000000    0
-    ## KNN  0.7209302 0.8343023 0.8604651 0.8684275 0.9047619 0.9534884    0
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.7142857 0.8139535 0.8604651 0.8561351 0.8837209 0.9761905    0
+    ## MARS  0.7619048 0.8333333 0.8809524 0.8702436 0.9047619 0.9761905    0
+    ## KNN   0.7441860 0.8333333 0.8809524 0.8664563 0.9047619 0.9767442    0
+    ## BOOST 0.7380952 0.8571429 0.8823367 0.8899889 0.9298173 1.0000000    0
     ## 
     ## Spec 
-    ##           Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## GLM  0.5172414 0.6551724 0.7241379 0.7114039 0.7586207 0.8620690    0
-    ## ENET 0.5172414 0.6551724 0.7019704 0.7043596 0.7564655 0.8965517    0
-    ## MARS 0.4482759 0.6610222 0.7241379 0.7195320 0.7844828 0.8965517    0
-    ## KNN  0.4827586 0.6071429 0.6551724 0.6711330 0.7241379 0.8928571    0
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.5172414 0.6551724 0.7241379 0.7051970 0.7586207 0.8275862    0
+    ## MARS  0.5172414 0.6551724 0.7142857 0.7122167 0.7586207 0.8965517    0
+    ## KNN   0.4827586 0.6206897 0.6785714 0.6745567 0.7241379 0.8620690    0
+    ## BOOST 0.5517241 0.6896552 0.7241379 0.7281773 0.7912562 0.8965517    0
 
 ``` r
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
@@ -1086,18 +1070,6 @@ bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Mo
 
 ``` r
 set.seed(37564)
-
-#vip(mod_glm, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
 
 #vip(mod_enet, 
 #    method = "permute", 
@@ -1111,22 +1083,18 @@ set.seed(37564)
 #    all_permutations = T,
 #    mapping = aes_string(fill = "Variable", alpha = 0.75))
 
-vip(mod_mars, 
-    method = "permute", 
-    train = train_df,
-    target = "survived",
-    metric = "auc",
-    reference_class = c("yes", "no"),
-    nsim = 1000,
-    pred_wrapper = predict,
-    geom = "boxplot", 
-    all_permutations = T,
-    mapping = aes_string(fill = "Variable", alpha = 0.75))
-```
+#vip(mod_mars, 
+#    method = "permute", 
+#    train = train_df,
+#    target = "survived",
+#    metric = "auc",
+#    reference_class = c("yes", "no"),
+#    nsim = 30,
+#    pred_wrapper = predict,
+#    geom = "boxplot", 
+#    all_permutations = T,
+#    mapping = aes_string(fill = "Variable", alpha = 0.75))
 
-<img src="final_project_files/figure-gfm/vip-1.png" width="80%" style="display: block; margin: auto;" />
-
-``` r
 #vip(mod_knn, 
 #    method = "permute", 
 #    train = train_df,
@@ -1138,4 +1106,59 @@ vip(mod_mars,
 #    geom = "boxplot", 
 #    all_permutations = T,
 #    mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+vip(mod_boost, 
+    method = "permute", 
+    train = train_df,
+    target = "survived",
+    metric = "auc",
+    reference_class = c("yes", "no"),
+    nsim = 30,
+    pred_wrapper = predict,
+    geom = "boxplot", 
+    all_permutations = T,
+    mapping = aes_string(fill = "Variable", alpha = 0.75))
 ```
+
+<img src="final_project_files/figure-gfm/vip-1.png" width="80%" style="display: block; margin: auto;" />
+
+## Prediction
+
+``` r
+set.seed(37564)
+
+test_df = 
+  read_csv("./data/test.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(pclass = as.factor(pclass), 
+         sex = as.factor(sex), 
+         embarked = as.factor(embarked)) %>% 
+  select(-c(ticket, cabin, name, passenger_id)) %>% 
+  drop_na()
+
+pred_mars = predict(mod_mars, newdata = test_df, type = "prob")[,1]
+pred_boost = predict(mod_boost, newdata = test_df, type = "prob")[,1]
+diff_df = 
+  tibble(pred_boost, pred_mars) %>% 
+  mutate(
+    boost_surv = ifelse(pred_boost > 0.5, "Y", "N"), 
+    mars_surv = ifelse(pred_mars > 0.5, "Y", "N"), 
+    diff = ifelse(boost_surv == mars_surv, "Y", "N"))
+diff_df %>% 
+  filter(diff == "N")
+```
+
+    ## # A tibble: 34 x 5
+    ##    pred_boost pred_mars boost_surv mars_surv diff 
+    ##         <dbl>     <dbl> <chr>      <chr>     <chr>
+    ##  1      0.889    0.349  Y          N         N    
+    ##  2      0.667    0.375  Y          N         N    
+    ##  3      0.814    0.358  Y          N         N    
+    ##  4      0.592    0.0708 Y          N         N    
+    ##  5      0.493    0.574  N          Y         N    
+    ##  6      0.449    0.739  N          Y         N    
+    ##  7      0.353    0.574  N          Y         N    
+    ##  8      0.755    0.420  Y          N         N    
+    ##  9      0.215    0.505  N          Y         N    
+    ## 10      0.631    0.296  Y          N         N    
+    ## # ... with 24 more rows
