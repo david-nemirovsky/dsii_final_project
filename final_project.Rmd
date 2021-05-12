@@ -18,6 +18,7 @@ library(gbm)
 library(pROC)
 library(visdat)
 library(kernlab)
+library(DALEX)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -241,6 +242,9 @@ vip(mod_boost,
     geom = "boxplot", 
     all_permutations = T,
     mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+#Check if enet parameters micking importance pattern
+coef(mod_enet$finalModel, mod_enet$bestTune$lambda)
 ```
 
 ## **Predictions**
@@ -257,9 +261,10 @@ testna_df =
   select(-c(ticket, cabin, name)) %>% 
   left_join(janitor::clean_names(read_csv("./data/titanic_results.csv")))
 
-testX = testna_df[-1]
+testX = testna_df[,2:8]
 bag_imp = preProcess(testX, method = "bagImpute")
-test_df = predict(bag_imp, testX)
+test_df = predict(bag_imp, testX) %>% 
+  cbind(testna_df[1], testna_df[9])
 
 pred_knn = predict(mod_knn, newdata = test_df, type = "prob")[,1]
 roc_knn = roc(test_df$survived, pred_knn)
@@ -284,6 +289,31 @@ modelNames = c("KNN","Elastic Net", "SVM", "MARS", "Boosting")
 legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
        col = c(1:4, 7), lwd = 2)
 plot(roc_boost, add = T, col = 7)
+```
+
+## Boosted RF Model Analysis
+```{r model_analysis}
+cm_df = pred_boost %>% 
+  as.data.frame() %>% 
+  rename("survived" = ".") %>% 
+  mutate(survived = ifelse(survived >= 0.5, 0, 1))
+  
+confusionMatrix(data = as.factor(cm_df$survived), 
+                reference = as.factor(test_df$survived))
+
+explainer_gbm = explain(mod_boost, 
+                        label = "gbm",
+                        data = train_df[-1],
+                        y = as.numeric(train_df$survived == "yes"),
+                        verbose = F)
+
+vi_gbm = model_parts(explainer_gbm)
+
+plot(vi_gbm)
+
+pdp_gbm = model_profile(explainer_gbm,
+                        variable = "age",
+                        type = "partial")
 ```
 
 ```{r kaggle comp, include = F}
