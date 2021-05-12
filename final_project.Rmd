@@ -17,6 +17,7 @@ library(ranger)
 library(gbm)
 library(pROC)
 library(visdat)
+library(kernlab)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -89,7 +90,6 @@ bag_imp = preProcess(trainX, method = "bagImpute")
 imp_df = predict(bag_imp, trainX)
 
 train_df = cbind(trainY, imp_df)
-###############################################################################################################
 
 tbl_summary(train_df)
 
@@ -136,8 +136,6 @@ train_df %>%
 ## **Model Training**
 
 ```{r models, message = F, warning = F}
-set.seed(37564)
-
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
 set.seed(37564)
@@ -192,7 +190,7 @@ mod_boost = train(survived ~ .,
                   method = "gbm",
                   distribution = "adaboost",
                   tuneGrid = expand.grid(n.trees = c(2000, 3000),
-                                         interaction.depth = 2:7,
+                                         interaction.depth = 3:10,
                                          shrinkage = c(0.005, 0.007, 0.009), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
@@ -205,26 +203,24 @@ tuning_plot_boost =
 mod_boost$bestTune
 
 set.seed(37564)
-mod_svm_radial = train(survived ~ .,
+mod_svm = train(survived ~ .,
                 na.action = na.exclude,
                 data = train_df,
                 preProcess = c("scale", "center"),
                 method = "svmRadialSigma",
                 tuneGrid = expand.grid(C = exp(seq(-2,3, len = 10)),
-                                       sigma = exp(seq(-8,0,len=10))),
+                                       sigma = exp(seq(-8,0, len = 10))),
                 metric = "ROC",
-                trControl = ctrl
-)
-
-tuning_plot_svm_radial = 
-  ggplot(mod_svm_radial, highlight = T) + 
+                trControl = ctrl)
+tuning_plot_svm = 
+  ggplot(mod_svm, highlight = T) + 
   ggtitle("SVM Radial") +
   theme(plot.title = element_text(hjust = 0.5))
-mod_svm_radial$bestTune
+mod_svm$bestTune
 
-(tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
+(tuning_plot_knn + tuning_plot_svm + tuning_plot_enet) / (tuning_plot_mars + tuning_plot_boost)
 
-res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM_rad = mod_svm_radial ))
+res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM = mod_svm))
 summary(res)
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
 ```
@@ -247,57 +243,60 @@ vip(mod_boost,
     mapping = aes_string(fill = "Variable", alpha = 0.75))
 ```
 
-## Prediction
+## **Predictions**
 
 ```{r pred, message = F, warning = F}
 set.seed(37564)
 
-test_df = 
+testna_df = 
   read_csv("./data/test.csv") %>% 
   janitor::clean_names() %>% 
   mutate(pclass = as.factor(pclass), 
          sex = as.factor(sex), 
          embarked = as.factor(embarked)) %>% 
-  select(-c(ticket, cabin, name, passenger_id)) %>% 
-  drop_na()
+  select(-c(ticket, cabin, name)) %>% 
+  left_join(janitor::clean_names(read_csv("./data/titanic_results.csv")))
+
+testX = testna_df[-1]
+bag_imp = preProcess(testX, method = "bagImpute")
+test_df = predict(bag_imp, testX)
+
+pred_knn = predict(mod_knn, newdata = test_df, type = "prob")[,1]
+roc_knn = roc(test_df$survived, pred_knn)
+plot(roc_knn, legacy.axes = T)
+
+pred_enet = predict(mod_enet, newdata = test_df, type = "prob")[,1]
+roc_enet = roc(test_df$survived, pred_enet)
+plot(roc_enet, add = T, col = 2)
+
+pred_svm = predict(mod_svm, newdata = test_df, type = "prob")[,1]
+roc_svm = roc(test_df$survived, pred_svm)
+plot(roc_svm, add = T, col = 3)
 
 pred_mars = predict(mod_mars, newdata = test_df, type = "prob")[,1]
+roc_mars = roc(test_df$survived, pred_mars)
+plot(roc_mars, add = T, col = 4)
+
 pred_boost = predict(mod_boost, newdata = test_df, type = "prob")[,1]
-diff_df = 
-  tibble(pred_boost, pred_mars) %>% 
-  mutate(
-    boost_surv = ifelse(pred_boost > 0.5, "N", "Y"), 
-    mars_surv = ifelse(pred_mars > 0.5, "N", "Y"), 
-    diff = ifelse(boost_surv == mars_surv, "Y", "N"))
-diff_df %>% 
-  filter(diff == "N")
+roc_boost = roc(test_df$survived, pred_boost)
+auc = c(roc_knn$auc[1], roc_enet$auc[1], roc_svm$auc[1], roc_mars$auc[1], roc_boost$auc[1])
+modelNames = c("KNN","Elastic Net", "SVM", "MARS", "Boosting")
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
+       col = c(1:4, 7), lwd = 2)
+plot(roc_boost, add = T, col = 7)
 ```
 
-## test/kaggle output
-```{r}
+```{r kaggle comp, include = F}
+# Submission for Kaggle Competition:
+test_id = testna_df$passenger_id
 
-test_df = read_csv("./data/test.csv") %>% 
-  janitor::clean_names() %>% 
-  mutate(pclass = as.factor(pclass), 
-         sex = as.factor(sex), 
-         embarked = as.factor(embarked)) %>% 
-  select(-c(ticket, cabin, name))
-  
-test_pid = test_df$passenger_id
-testX = test_df[-1]
-
-bag_imp = preProcess(testX, method = "bagImpute")
-imp_df = predict(bag_imp, testX)
-
-test_res = predict(mod_boost, newdata = imp_df, type = "prob")[,1]
-
-test_res = test_res %>% 
+test_res = 
+  pred_boost %>% 
   as.data.frame() %>% 
-  mutate(Survived = ifelse(test_res > 0.5, 0, 1))
+  mutate(survived = ifelse(pred_boost > 0.5, 0, 1))
 
-res = cbind(test_pid, test_res$Survived)
-
-res = res %>% 
+submission = 
+  cbind(test_id, test_res$survived) %>% 
   as.data.frame() %>% 
   rename(PassengerId = test_pid,
          Survived = V2)
