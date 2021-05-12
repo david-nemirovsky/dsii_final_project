@@ -311,9 +311,21 @@ vi_gbm = model_parts(explainer_gbm)
 
 plot(vi_gbm)
 
-pdp_gbm = model_profile(explainer_gbm,
+pdp_age = model_profile(explainer_gbm,
                         variable = "age",
                         type = "partial")
+
+pdp_fare = model_profile(explainer_gbm,
+                         variable = "fare",
+                         type = "partial")
+
+plot(pdp_age, pdp_fare)
+
+pb_gbm = predict_parts(explainer_gbm,
+                       new_observation = test_df[1,],
+                       type = "break_down")
+
+plot(pb_gbm)
 ```
 
 ```{r kaggle comp, include = F}
