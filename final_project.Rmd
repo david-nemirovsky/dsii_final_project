@@ -301,7 +301,8 @@ legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
 plot(roc_boost, add = T, col = 7)
 ```
 
-## Boosted RF Model Analysis
+## **Boosted RF Model Analysis**
+
 ```{r model_analysis}
 cm_df = pred_boost %>% 
   as.data.frame() %>% 
@@ -353,6 +354,6 @@ submission =
   rename(PassengerId = test_pid,
          Survived = V2)
 
-write_csv(res, "submission.csv")
+write_csv(submission, "submission.csv")
 ```
 
