@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
   fig.align = "center",
   fig.width = 7,
   fig.asp = .6,
-  out.width = "80%"
+  out.width = "100%"
 )
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
@@ -55,7 +55,7 @@ train_df =
   select(-c(ticket, cabin, name, passenger_id)) %>% 
   drop_na()
 
-#Missing data eda
+#Missing Data EDA:
 train_nas = 
   titanic_df %>% 
   select(-c(ticket, cabin, name, passenger_id))
@@ -138,6 +138,8 @@ train_df %>%
 ```{r models, message = F, warning = F}
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
+ctrl2 = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 10)
+
 set.seed(37564)
 mod_enet = train(survived ~ .,
                  na.action = na.exclude, 
@@ -190,8 +192,8 @@ mod_boost = train(survived ~ .,
                   method = "gbm",
                   distribution = "adaboost",
                   tuneGrid = expand.grid(n.trees = c(2000, 3000),
-                                         interaction.depth = 3:10,
-                                         shrinkage = c(0.005, 0.007, 0.009), 
+                                         interaction.depth = 4:13,
+                                         shrinkage = c(0.003, 0.005, 0.007), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
                   trControl = ctrl,
@@ -218,7 +220,14 @@ tuning_plot_svm =
   theme(plot.title = element_text(hjust = 0.5))
 mod_svm$bestTune
 
-(tuning_plot_knn + tuning_plot_svm + tuning_plot_enet) / (tuning_plot_mars + tuning_plot_boost)
+layout = "
+AABB
+CCDD
+EEEE
+"
+tuning_plot_knn + tuning_plot_enet + 
+  tuning_plot_mars + tuning_plot_svm + 
+  tuning_plot_boost + plot_layout(design = layout)
 
 res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM = mod_svm))
 summary(res)
@@ -279,6 +288,7 @@ plot(roc_mars, add = T, col = 4)
 
 pred_boost = predict(mod_boost, newdata = test_df, type = "prob")[,1]
 roc_boost = roc(test_df$survived, pred_boost)
+
 auc = c(roc_knn$auc[1], roc_enet$auc[1], roc_svm$auc[1], roc_mars$auc[1], roc_boost$auc[1])
 modelNames = c("KNN","Elastic Net", "SVM", "MARS", "Boosting")
 legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),

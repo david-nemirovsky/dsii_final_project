@@ -19,6 +19,72 @@ train_df =
   select(-c(ticket, cabin, name, passenger_id)) %>% 
   drop_na()
 
+#Missing data eda
+train_nas = 
+  titanic_df %>% 
+  select(-c(ticket, cabin, name, passenger_id))
+
+vis_miss(train_nas)
+```
+
+<img src="final_project_files/figure-gfm/eda-1.png" width="80%" style="display: block; margin: auto;" />
+
+``` r
+miss_surv = train_nas %>% 
+  filter(is.na(age)) %>% 
+  group_by(survived) %>% 
+  summarise(count = n())
+
+miss_surv
+```
+
+    ## # A tibble: 2 x 2
+    ##   survived count
+    ##   <fct>    <int>
+    ## 1 no         125
+    ## 2 yes         52
+
+``` r
+all_surv = train_df %>% 
+  group_by(survived) %>% 
+  summarise(count = n())
+
+all_surv 
+```
+
+    ## # A tibble: 2 x 2
+    ##   survived count
+    ##   <fct>    <int>
+    ## 1 no         424
+    ## 2 yes        288
+
+``` r
+#survival percentage in NAs is similar to actual survival rate so assume missingness is not related to outcome,
+#will use bagging impute to fill in missing data, embarked will be replaced by the most popular port "S"
+train_nas %>% 
+  group_by(embarked) %>% 
+  summarise(count = n())
+```
+
+    ## # A tibble: 4 x 2
+    ##   embarked count
+    ##   <fct>    <int>
+    ## 1 C          168
+    ## 2 Q           77
+    ## 3 S          644
+    ## 4 <NA>         2
+
+``` r
+train_nas[is.na(train_nas$embarked),"embarked"] = "S"
+
+trainY = train_nas[1]
+trainX = train_nas[-1]
+
+bag_imp = preProcess(trainX, method = "bagImpute")
+imp_df = predict(bag_imp, trainX)
+
+train_df = cbind(trainY, imp_df)
+
 tbl_summary(train_df)
 ```
 
@@ -28,7 +94,7 @@ tbl_summary(train_df)
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#sqaumxajvs .gt_table {
+#xwocymlrnq .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -53,7 +119,7 @@ tbl_summary(train_df)
   border-left-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_heading {
+#xwocymlrnq .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -65,7 +131,7 @@ tbl_summary(train_df)
   border-right-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_title {
+#xwocymlrnq .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -75,7 +141,7 @@ tbl_summary(train_df)
   border-bottom-width: 0;
 }
 
-#sqaumxajvs .gt_subtitle {
+#xwocymlrnq .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -85,13 +151,13 @@ tbl_summary(train_df)
   border-top-width: 0;
 }
 
-#sqaumxajvs .gt_bottom_border {
+#xwocymlrnq .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_col_headings {
+#xwocymlrnq .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -106,7 +172,7 @@ tbl_summary(train_df)
   border-right-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_col_heading {
+#xwocymlrnq .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -126,7 +192,7 @@ tbl_summary(train_df)
   overflow-x: hidden;
 }
 
-#sqaumxajvs .gt_column_spanner_outer {
+#xwocymlrnq .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -138,15 +204,15 @@ tbl_summary(train_df)
   padding-right: 4px;
 }
 
-#sqaumxajvs .gt_column_spanner_outer:first-child {
+#xwocymlrnq .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#sqaumxajvs .gt_column_spanner_outer:last-child {
+#xwocymlrnq .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#sqaumxajvs .gt_column_spanner {
+#xwocymlrnq .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -158,7 +224,7 @@ tbl_summary(train_df)
   width: 100%;
 }
 
-#sqaumxajvs .gt_group_heading {
+#xwocymlrnq .gt_group_heading {
   padding: 8px;
   color: #333333;
   background-color: #FFFFFF;
@@ -180,7 +246,7 @@ tbl_summary(train_df)
   vertical-align: middle;
 }
 
-#sqaumxajvs .gt_empty_group_heading {
+#xwocymlrnq .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -195,15 +261,15 @@ tbl_summary(train_df)
   vertical-align: middle;
 }
 
-#sqaumxajvs .gt_from_md > :first-child {
+#xwocymlrnq .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#sqaumxajvs .gt_from_md > :last-child {
+#xwocymlrnq .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#sqaumxajvs .gt_row {
+#xwocymlrnq .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -222,7 +288,7 @@ tbl_summary(train_df)
   overflow-x: hidden;
 }
 
-#sqaumxajvs .gt_stub {
+#xwocymlrnq .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -234,7 +300,7 @@ tbl_summary(train_df)
   padding-left: 12px;
 }
 
-#sqaumxajvs .gt_summary_row {
+#xwocymlrnq .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -244,7 +310,7 @@ tbl_summary(train_df)
   padding-right: 5px;
 }
 
-#sqaumxajvs .gt_first_summary_row {
+#xwocymlrnq .gt_first_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -254,7 +320,7 @@ tbl_summary(train_df)
   border-top-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_grand_summary_row {
+#xwocymlrnq .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -264,7 +330,7 @@ tbl_summary(train_df)
   padding-right: 5px;
 }
 
-#sqaumxajvs .gt_first_grand_summary_row {
+#xwocymlrnq .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -274,11 +340,11 @@ tbl_summary(train_df)
   border-top-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_striped {
+#xwocymlrnq .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#sqaumxajvs .gt_table_body {
+#xwocymlrnq .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -287,7 +353,7 @@ tbl_summary(train_df)
   border-bottom-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_footnotes {
+#xwocymlrnq .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -301,13 +367,13 @@ tbl_summary(train_df)
   border-right-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_footnote {
+#xwocymlrnq .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding: 4px;
 }
 
-#sqaumxajvs .gt_sourcenotes {
+#xwocymlrnq .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -321,47 +387,47 @@ tbl_summary(train_df)
   border-right-color: #D3D3D3;
 }
 
-#sqaumxajvs .gt_sourcenote {
+#xwocymlrnq .gt_sourcenote {
   font-size: 90%;
   padding: 4px;
 }
 
-#sqaumxajvs .gt_left {
+#xwocymlrnq .gt_left {
   text-align: left;
 }
 
-#sqaumxajvs .gt_center {
+#xwocymlrnq .gt_center {
   text-align: center;
 }
 
-#sqaumxajvs .gt_right {
+#xwocymlrnq .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#sqaumxajvs .gt_font_normal {
+#xwocymlrnq .gt_font_normal {
   font-weight: normal;
 }
 
-#sqaumxajvs .gt_font_bold {
+#xwocymlrnq .gt_font_bold {
   font-weight: bold;
 }
 
-#sqaumxajvs .gt_font_italic {
+#xwocymlrnq .gt_font_italic {
   font-style: italic;
 }
 
-#sqaumxajvs .gt_super {
+#xwocymlrnq .gt_super {
   font-size: 65%;
 }
 
-#sqaumxajvs .gt_footnote_marks {
+#xwocymlrnq .gt_footnote_marks {
   font-style: italic;
   font-size: 65%;
 }
 </style>
 
-<div id="sqaumxajvs" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="xwocymlrnq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 
 <table class="gt_table">
 
@@ -377,7 +443,7 @@ tbl_summary(train_df)
 
 <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">
 
-<strong>N = 712</strong><sup class="gt_footnote_marks">1</sup>
+<strong>N = 891</strong><sup class="gt_footnote_marks">1</sup>
 
 </th>
 
@@ -397,7 +463,7 @@ survived
 
 <td class="gt_row gt_center">
 
-288 (40%)
+342 (38%)
 
 </td>
 
@@ -427,7 +493,7 @@ pclass
 
 <td class="gt_row gt_center">
 
-184 (26%)
+216 (24%)
 
 </td>
 
@@ -443,7 +509,7 @@ pclass
 
 <td class="gt_row gt_center">
 
-173 (24%)
+184 (21%)
 
 </td>
 
@@ -459,7 +525,7 @@ pclass
 
 <td class="gt_row gt_center">
 
-355 (50%)
+491 (55%)
 
 </td>
 
@@ -489,7 +555,7 @@ female
 
 <td class="gt_row gt_center">
 
-259 (36%)
+314 (35%)
 
 </td>
 
@@ -505,7 +571,7 @@ male
 
 <td class="gt_row gt_center">
 
-453 (64%)
+577 (65%)
 
 </td>
 
@@ -521,7 +587,7 @@ age
 
 <td class="gt_row gt_center">
 
-28 (20, 38)
+28 (22, 36)
 
 </td>
 
@@ -551,7 +617,7 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-469 (66%)
+608 (68%)
 
 </td>
 
@@ -567,7 +633,7 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-183 (26%)
+209 (23%)
 
 </td>
 
@@ -583,7 +649,7 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-25 (3.5%)
+28 (3.1%)
 
 </td>
 
@@ -599,7 +665,7 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-12 (1.7%)
+16 (1.8%)
 
 </td>
 
@@ -615,7 +681,7 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-18 (2.5%)
+18 (2.0%)
 
 </td>
 
@@ -631,7 +697,23 @@ sib\_sp
 
 <td class="gt_row gt_center">
 
-5 (0.7%)
+5 (0.6%)
+
+</td>
+
+</tr>
+
+<tr>
+
+<td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">
+
+8
+
+</td>
+
+<td class="gt_row gt_center">
+
+7 (0.8%)
 
 </td>
 
@@ -661,7 +743,7 @@ parch
 
 <td class="gt_row gt_center">
 
-519 (73%)
+678 (76%)
 
 </td>
 
@@ -677,7 +759,7 @@ parch
 
 <td class="gt_row gt_center">
 
-110 (15%)
+118 (13%)
 
 </td>
 
@@ -693,7 +775,7 @@ parch
 
 <td class="gt_row gt_center">
 
-68 (9.6%)
+80 (9.0%)
 
 </td>
 
@@ -709,7 +791,7 @@ parch
 
 <td class="gt_row gt_center">
 
-5 (0.7%)
+5 (0.6%)
 
 </td>
 
@@ -725,7 +807,7 @@ parch
 
 <td class="gt_row gt_center">
 
-4 (0.6%)
+4 (0.4%)
 
 </td>
 
@@ -741,7 +823,7 @@ parch
 
 <td class="gt_row gt_center">
 
-5 (0.7%)
+5 (0.6%)
 
 </td>
 
@@ -773,7 +855,7 @@ fare
 
 <td class="gt_row gt_center">
 
-16 (8, 33)
+14 (8, 31)
 
 </td>
 
@@ -803,7 +885,7 @@ C
 
 <td class="gt_row gt_center">
 
-130 (18%)
+168 (19%)
 
 </td>
 
@@ -819,7 +901,7 @@ Q
 
 <td class="gt_row gt_center">
 
-28 (3.9%)
+77 (8.6%)
 
 </td>
 
@@ -835,7 +917,7 @@ S
 
 <td class="gt_row gt_center">
 
-554 (78%)
+646 (73%)
 
 </td>
 
@@ -882,7 +964,7 @@ featurePlot(x = select(mutate(train_df,
             auto.key = list(columns = 2))
 ```
 
-<img src="final_project_files/figure-gfm/eda-1.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-2.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
 train_df %>% 
@@ -891,7 +973,7 @@ train_df %>%
   facet_grid(sex ~ pclass)
 ```
 
-<img src="final_project_files/figure-gfm/eda-2.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-3.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
 train_df %>% 
@@ -901,7 +983,7 @@ train_df %>%
   facet_grid(sex ~ pclass)
 ```
 
-<img src="final_project_files/figure-gfm/eda-3.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-4.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
 train_df %>% 
@@ -911,7 +993,7 @@ train_df %>%
   facet_grid(sex ~ pclass)
 ```
 
-<img src="final_project_files/figure-gfm/eda-4.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-5.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
 train_df %>% 
@@ -920,7 +1002,7 @@ train_df %>%
   facet_grid(sex ~ embarked)
 ```
 
-<img src="final_project_files/figure-gfm/eda-5.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-6.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
 train_df %>% 
@@ -930,13 +1012,11 @@ train_df %>%
   facet_grid(sex ~ embarked)
 ```
 
-<img src="final_project_files/figure-gfm/eda-6.png" width="80%" style="display: block; margin: auto;" />
+<img src="final_project_files/figure-gfm/eda-7.png" width="80%" style="display: block; margin: auto;" />
 
 ## **Model Training**
 
 ``` r
-set.seed(37564)
-
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
 set.seed(37564)
@@ -957,7 +1037,7 @@ mod_enet$bestTune
 ```
 
     ##     alpha      lambda
-    ## 231   0.4 0.003883492
+    ## 165   0.3 0.001051915
 
 ``` r
 set.seed(37564)
@@ -976,7 +1056,7 @@ mod_mars$bestTune
 ```
 
     ##    nprune degree
-    ## 28     10      3
+    ## 18     11      2
 
 ``` r
 set.seed(37564)
@@ -1004,9 +1084,10 @@ mod_boost = train(survived ~ .,
                   na.action = na.exclude,
                   data = train_df,
                   method = "gbm",
-                  tuneGrid = expand.grid(n.trees = c(1000, 3000),
-                                         interaction.depth = 1:6,
-                                         shrinkage = c(0.001, 0.003, 0.005), 
+                  distribution = "adaboost",
+                  tuneGrid = expand.grid(n.trees = c(2000, 3000),
+                                         interaction.depth = 3:10,
+                                         shrinkage = c(0.005, 0.007, 0.009), 
                                          n.minobsinnode = 1),
                   metric = "ROC",
                   trControl = ctrl,
@@ -1019,16 +1100,37 @@ mod_boost$bestTune
 ```
 
     ##    n.trees interaction.depth shrinkage n.minobsinnode
-    ## 36    3000                 6     0.005              1
+    ## 15    2000                10     0.005              1
 
 ``` r
-(tuning_plot_enet + tuning_plot_mars + tuning_plot_knn) / tuning_plot_boost
+set.seed(37564)
+mod_svm = train(survived ~ .,
+                na.action = na.exclude,
+                data = train_df,
+                preProcess = c("scale", "center"),
+                method = "svmRadialSigma",
+                tuneGrid = expand.grid(C = exp(seq(-2,3, len = 10)),
+                                       sigma = exp(seq(-8,0, len = 10))),
+                metric = "ROC",
+                trControl = ctrl)
+tuning_plot_svm = 
+  ggplot(mod_svm, highlight = T) + 
+  ggtitle("SVM Radial") +
+  theme(plot.title = element_text(hjust = 0.5))
+mod_svm$bestTune
+```
+
+    ##        sigma        C
+    ## 76 0.0285655 6.612018
+
+``` r
+(tuning_plot_knn + tuning_plot_svm + tuning_plot_enet) / (tuning_plot_mars + tuning_plot_boost)
 ```
 
 <img src="final_project_files/figure-gfm/models-1.png" width="80%" style="display: block; margin: auto;" />
 
 ``` r
-res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost))
+res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM = mod_svm))
 summary(res)
 ```
 
@@ -1036,29 +1138,32 @@ summary(res)
     ## Call:
     ## summary.resamples(object = res)
     ## 
-    ## Models: ENET, MARS, KNN, BOOST 
+    ## Models: ENET, MARS, KNN, BOOST, SVM 
     ## Number of resamples: 50 
     ## 
     ## ROC 
     ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## ENET  0.7380952 0.8165637 0.8446176 0.8531036 0.8905434 0.9556650    0
-    ## MARS  0.7479475 0.8370589 0.8653053 0.8657740 0.8949097 0.9474548    0
-    ## KNN   0.7676519 0.8245074 0.8552736 0.8550413 0.8808498 0.9330870    0
-    ## BOOST 0.7654370 0.8421784 0.8723317 0.8750384 0.9051438 0.9534884    0
+    ## ENET  0.7545455 0.8311497 0.8562834 0.8523355 0.8815699 0.9208556    0
+    ## MARS  0.7804813 0.8408709 0.8704793 0.8659702 0.8903839 0.9415584    0
+    ## KNN   0.8080214 0.8431723 0.8644038 0.8685563 0.8882659 0.9532086    0
+    ## BOOST 0.7983957 0.8614973 0.8815508 0.8806867 0.9012032 0.9513369    0
+    ## SVM   0.7812834 0.8322193 0.8629283 0.8603161 0.8828209 0.9294118    0
     ## 
     ## Sens 
     ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## ENET  0.7142857 0.8139535 0.8604651 0.8561351 0.8837209 0.9761905    0
-    ## MARS  0.7619048 0.8333333 0.8809524 0.8702436 0.9047619 0.9761905    0
-    ## KNN   0.7441860 0.8333333 0.8809524 0.8664563 0.9047619 0.9767442    0
-    ## BOOST 0.7380952 0.8571429 0.8823367 0.8899889 0.9298173 1.0000000    0
+    ## ENET  0.8000000 0.8363636 0.8727273 0.8648418 0.8909091 0.9454545    0
+    ## MARS  0.6909091 0.8363636 0.8727273 0.8692054 0.8909091 0.9636364    0
+    ## KNN   0.7777778 0.8545455 0.8727273 0.8790034 0.9090909 0.9636364    0
+    ## BOOST 0.8000000 0.8888889 0.9090909 0.9063771 0.9454545 0.9636364    0
+    ## SVM   0.8545455 0.9090909 0.9272727 0.9253333 0.9454545 1.0000000    0
     ## 
     ## Spec 
     ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
-    ## ENET  0.5172414 0.6551724 0.7241379 0.7051970 0.7586207 0.8275862    0
-    ## MARS  0.5172414 0.6551724 0.7142857 0.7122167 0.7586207 0.8965517    0
-    ## KNN   0.4827586 0.6206897 0.6785714 0.6745567 0.7241379 0.8620690    0
-    ## BOOST 0.5517241 0.6896552 0.7241379 0.7281773 0.7912562 0.8965517    0
+    ## ENET  0.5588235 0.6619748 0.7058824 0.7052437 0.7409664 0.8529412    0
+    ## MARS  0.5882353 0.6764706 0.7058824 0.7156975 0.7714286 0.9117647    0
+    ## KNN   0.5588235 0.6470588 0.6957983 0.6983193 0.7592437 0.9117647    0
+    ## BOOST 0.5588235 0.6470588 0.7058824 0.7059664 0.7647059 0.9117647    0
+    ## SVM   0.4705882 0.6176471 0.6668067 0.6608235 0.7058824 0.8529412    0
 
 ``` r
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
@@ -1070,42 +1175,6 @@ bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Mo
 
 ``` r
 set.seed(37564)
-
-#vip(mod_enet, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_mars, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 30,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
-
-#vip(mod_knn, 
-#    method = "permute", 
-#    train = train_df,
-#    target = "survived",
-#    metric = "auc",
-#    reference_class = c("yes", "no"),
-#    nsim = 1000,
-#    pred_wrapper = predict,
-#    geom = "boxplot", 
-#    all_permutations = T,
-#    mapping = aes_string(fill = "Variable", alpha = 0.75))
 
 vip(mod_boost, 
     method = "permute", 
@@ -1122,43 +1191,47 @@ vip(mod_boost,
 
 <img src="final_project_files/figure-gfm/vip-1.png" width="80%" style="display: block; margin: auto;" />
 
-## Prediction
+## **Predictions**
 
 ``` r
 set.seed(37564)
 
-test_df = 
+testna_df = 
   read_csv("./data/test.csv") %>% 
   janitor::clean_names() %>% 
   mutate(pclass = as.factor(pclass), 
          sex = as.factor(sex), 
          embarked = as.factor(embarked)) %>% 
-  select(-c(ticket, cabin, name, passenger_id)) %>% 
-  drop_na()
+  select(-c(ticket, cabin, name)) %>% 
+  left_join(janitor::clean_names(read_csv("./data/titanic_results.csv")))
+
+testX = testna_df[-1]
+bag_imp = preProcess(testX, method = "bagImpute")
+test_df = predict(bag_imp, testX)
+
+pred_knn = predict(mod_knn, newdata = test_df, type = "prob")[,1]
+roc_knn = roc(test_df$survived, pred_knn)
+plot(roc_knn, legacy.axes = T)
+
+pred_enet = predict(mod_enet, newdata = test_df, type = "prob")[,1]
+roc_enet = roc(test_df$survived, pred_enet)
+plot(roc_enet, add = T, col = 2)
+
+pred_svm = predict(mod_svm, newdata = test_df, type = "prob")[,1]
+roc_svm = roc(test_df$survived, pred_svm)
+plot(roc_svm, add = T, col = 3)
 
 pred_mars = predict(mod_mars, newdata = test_df, type = "prob")[,1]
+roc_mars = roc(test_df$survived, pred_mars)
+plot(roc_mars, add = T, col = 4)
+
 pred_boost = predict(mod_boost, newdata = test_df, type = "prob")[,1]
-diff_df = 
-  tibble(pred_boost, pred_mars) %>% 
-  mutate(
-    boost_surv = ifelse(pred_boost > 0.5, "Y", "N"), 
-    mars_surv = ifelse(pred_mars > 0.5, "Y", "N"), 
-    diff = ifelse(boost_surv == mars_surv, "Y", "N"))
-diff_df %>% 
-  filter(diff == "N")
+roc_boost = roc(test_df$survived, pred_boost)
+auc = c(roc_knn$auc[1], roc_enet$auc[1], roc_svm$auc[1], roc_mars$auc[1], roc_boost$auc[1])
+modelNames = c("KNN","Elastic Net", "SVM", "MARS", "Boosting")
+legend("bottomright", legend = paste0(modelNames, ": ", round(auc,3)),
+       col = c(1:4, 7), lwd = 2)
+plot(roc_boost, add = T, col = 7)
 ```
 
-    ## # A tibble: 34 x 5
-    ##    pred_boost pred_mars boost_surv mars_surv diff 
-    ##         <dbl>     <dbl> <chr>      <chr>     <chr>
-    ##  1      0.889    0.349  Y          N         N    
-    ##  2      0.667    0.375  Y          N         N    
-    ##  3      0.814    0.358  Y          N         N    
-    ##  4      0.592    0.0708 Y          N         N    
-    ##  5      0.493    0.574  N          Y         N    
-    ##  6      0.449    0.739  N          Y         N    
-    ##  7      0.353    0.574  N          Y         N    
-    ##  8      0.755    0.420  Y          N         N    
-    ##  9      0.215    0.505  N          Y         N    
-    ## 10      0.631    0.296  Y          N         N    
-    ## # ... with 24 more rows
+<img src="final_project_files/figure-gfm/pred-1.png" width="80%" style="display: block; margin: auto;" />
