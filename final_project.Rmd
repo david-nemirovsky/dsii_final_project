@@ -299,6 +299,9 @@ res = cbind(test_pid, test_res$Survived)
 
 res = res %>% 
   as.data.frame() %>% 
-  rename(PassengerId = test_pid)
+  rename(PassengerId = test_pid,
+         Survived = V2)
+
+write_csv(res, "submission.csv")
 ```
 
