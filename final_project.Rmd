@@ -334,7 +334,21 @@ vip(mod_boost,
     train = train_df,
     target = "survived",
     metric = "auc",
-    reference_class = c("yes", "no"),
+    reference_class = c("no", "yes"),
+    nsim = 30,
+    pred_wrapper = predict,
+    geom = "boxplot", 
+    all_permutations = T,
+    mapping = aes_string(fill = "Variable", alpha = 0.75))
+
+set.seed(37564)
+
+vip(mod_enet, 
+    method = "permute", 
+    train = train_df,
+    target = "survived",
+    metric = "auc",
+    reference_class = c("no", "yes"),
     nsim = 30,
     pred_wrapper = predict,
     geom = "boxplot", 
