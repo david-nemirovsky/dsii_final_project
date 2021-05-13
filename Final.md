@@ -20,7 +20,7 @@ titanic_df =
 vis_miss(titanic_df)
 ```
 
-<img src="final_project_files/figure-gfm/eda-1.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-1.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 # Missing Survivals:
@@ -105,7 +105,7 @@ eda_df %>%
                   embarked ~ "Port of Embarkation")) %>% 
   add_overall %>% 
   as_gt() %>% 
-  tab_options(table.width = pct(75), table.font.size = "small")
+  tab_options(table.width = pct(30), table.font.size = "small")
 ```
 
 <!--html_preserve-->
@@ -124,7 +124,7 @@ eda_df %>%
   font-weight: normal;
   font-style: normal;
   background-color: #FFFFFF;
-  width: 75%;
+  width: 30%;
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #A8A8A8;
@@ -1302,7 +1302,7 @@ eda_df %>%
   geom_density()
 ```
 
-<img src="final_project_files/figure-gfm/eda-2.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-2.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 eda_df %>% 
@@ -1310,7 +1310,7 @@ eda_df %>%
   geom_density()
 ```
 
-<img src="final_project_files/figure-gfm/eda-3.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-3.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 eda_df %>% 
@@ -1318,7 +1318,7 @@ eda_df %>%
   geom_density()
 ```
 
-<img src="final_project_files/figure-gfm/eda-4.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-4.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 # Survival by Age:
@@ -1396,7 +1396,7 @@ plot_age + plot_fare + plot_sibsp + plot_parch + plot_sex +
   plot_pclass + plot_emb + plot_layout(design = layout, guides = "collect")
 ```
 
-<img src="final_project_files/figure-gfm/eda-5.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-5.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 # Survival of Age vs Fare by SES and Sex
@@ -1409,7 +1409,7 @@ eda_df %>%
   scale_color_discrete(name = "Survived")
 ```
 
-<img src="final_project_files/figure-gfm/eda-6.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-6.png" width="100%" style="display: block; margin: auto;" />
 
 ``` r
 # Survival of Age vs Fare by Embarkation and Sex
@@ -1422,7 +1422,7 @@ eda_df %>%
   scale_color_discrete(name = "Survived")
 ```
 
-<img src="final_project_files/figure-gfm/eda-7.png" width="100%" style="display: block; margin: auto;" />
+<img src="Final_files/figure-gfm/eda-7.png" width="100%" style="display: block; margin: auto;" />
 
 ## **Model Training**
 
@@ -1444,7 +1444,12 @@ tuning_plot_enet =
   ggtitle("Elastic Net") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_enet$bestTune
+```
 
+    ##     alpha      lambda
+    ## 165   0.3 0.001051915
+
+``` r
 set.seed(37564)
 mod_mars = train(survived ~ ., 
                  na.action = na.exclude, 
@@ -1458,7 +1463,12 @@ tuning_plot_mars =
   ggtitle("MARS") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_mars$bestTune
+```
 
+    ##    nprune degree
+    ## 18     11      2
+
+``` r
 set.seed(37564)
 mod_knn = train(survived ~ .,
                 na.action = na.exclude, 
@@ -1473,7 +1483,12 @@ tuning_plot_knn =
   ggtitle("KNN") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_knn$bestTune
+```
 
+    ##   k
+    ## 8 8
+
+``` r
 set.seed(37564)
 mod_boost = train(survived ~ .,
                   na.action = na.exclude,
@@ -1492,7 +1507,12 @@ tuning_plot_boost =
   ggtitle("Boosting") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_boost$bestTune
+```
 
+    ##    n.trees interaction.depth shrinkage n.minobsinnode
+    ## 35    2000                11     0.005              1
+
+``` r
 set.seed(37564)
 mod_svm = train(survived ~ .,
                 na.action = na.exclude,
@@ -1508,7 +1528,12 @@ tuning_plot_svm =
   ggtitle("SVM Radial") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_svm$bestTune
+```
 
+    ##        sigma        C
+    ## 76 0.0285655 6.612018
+
+``` r
 layout2 = "
 AABB
 CCDD
@@ -1517,11 +1542,51 @@ EEEE
 tuning_plot_knn + tuning_plot_enet + 
   tuning_plot_mars + tuning_plot_svm + 
   tuning_plot_boost + plot_layout(design = layout2)
+```
 
+<img src="Final_files/figure-gfm/models-1.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
 res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM = mod_svm))
 summary(res)
+```
+
+    ## 
+    ## Call:
+    ## summary.resamples(object = res)
+    ## 
+    ## Models: ENET, MARS, KNN, BOOST, SVM 
+    ## Number of resamples: 50 
+    ## 
+    ## ROC 
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.7545455 0.8311497 0.8562834 0.8523355 0.8815699 0.9208556    0
+    ## MARS  0.7804813 0.8408709 0.8704793 0.8659702 0.8903839 0.9415584    0
+    ## KNN   0.8080214 0.8431723 0.8644038 0.8685563 0.8882659 0.9532086    0
+    ## BOOST 0.8042781 0.8617647 0.8788770 0.8803538 0.9021314 0.9524064    0
+    ## SVM   0.7818182 0.8322193 0.8626560 0.8603469 0.8816176 0.9294118    0
+    ## 
+    ## Sens 
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.5588235 0.6619748 0.7058824 0.7052437 0.7409664 0.8529412    0
+    ## MARS  0.5882353 0.6764706 0.7058824 0.7156975 0.7714286 0.9117647    0
+    ## KNN   0.5428571 0.6470588 0.7058824 0.7083529 0.7647059 0.8823529    0
+    ## BOOST 0.5588235 0.6544118 0.7058824 0.7124034 0.7647059 0.9117647    0
+    ## SVM   0.4705882 0.6176471 0.6764706 0.6625546 0.7058824 0.8529412    0
+    ## 
+    ## Spec 
+    ##            Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+    ## ENET  0.8000000 0.8363636 0.8727273 0.8648418 0.8909091 0.9454545    0
+    ## MARS  0.6909091 0.8363636 0.8727273 0.8692054 0.8909091 0.9636364    0
+    ## KNN   0.7777778 0.8545455 0.8909091 0.8815623 0.9090909 0.9636364    0
+    ## BOOST 0.8000000 0.8727273 0.9090909 0.9052795 0.9454545 0.9636364    0
+    ## SVM   0.8545455 0.9090909 0.9272727 0.9242290 0.9454545 1.0000000    0
+
+``` r
 bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Models")
 ```
+
+<img src="Final_files/figure-gfm/models-2.png" width="100%" style="display: block; margin: auto;" />
 
 ## **Variable Importance**
 
@@ -1538,10 +1603,27 @@ vip(mod_boost,
     geom = "boxplot", 
     all_permutations = T,
     mapping = aes_string(fill = "Variable", alpha = 0.75))
+```
 
+<img src="Final_files/figure-gfm/vip-1.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
 # Check if ENET parameters mocks importance pattern
 coef(mod_enet$finalModel, mod_enet$bestTune$lambda)
 ```
+
+    ## 10 x 1 sparse Matrix of class "dgCMatrix"
+    ##                        1
+    ## (Intercept) -4.209638353
+    ## pclass2      1.018755246
+    ## pclass3      2.276636897
+    ## sexmale      2.664609147
+    ## age          0.040746141
+    ## sib_sp       0.358907155
+    ## parch        0.096550464
+    ## fare        -0.001996118
+    ## embarkedQ   -0.001246108
+    ## embarkedS    0.406549532
 
 ## **Predictions**
 
@@ -1565,6 +1647,8 @@ roc_boost = roc(test_df$survived, pred_boost)
 plot(roc_boost, legacy.axes = T, print.auc = T)
 ```
 
+<img src="Final_files/figure-gfm/pred-1.png" width="100%" style="display: block; margin: auto;" />
+
 ## **AdaBoost Model Analysis**
 
 ``` r
@@ -1574,7 +1658,37 @@ cm_df = pred_boost %>%
   mutate(survived = as.factor(ifelse(survived >= 0.5, 1, 0)))
   
 confusionMatrix(data = cm_df$survived, reference = as.factor(test_df$survived))
+```
 
+    ## Confusion Matrix and Statistics
+    ## 
+    ##           Reference
+    ## Prediction   0   1
+    ##          0 221  58
+    ##          1  39 100
+    ##                                           
+    ##                Accuracy : 0.7679          
+    ##                  95% CI : (0.7245, 0.8076)
+    ##     No Information Rate : 0.622           
+    ##     P-Value [Acc > NIR] : 1.342e-10       
+    ##                                           
+    ##                   Kappa : 0.4946          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 0.06761         
+    ##                                           
+    ##             Sensitivity : 0.8500          
+    ##             Specificity : 0.6329          
+    ##          Pos Pred Value : 0.7921          
+    ##          Neg Pred Value : 0.7194          
+    ##              Prevalence : 0.6220          
+    ##          Detection Rate : 0.5287          
+    ##    Detection Prevalence : 0.6675          
+    ##       Balanced Accuracy : 0.7415          
+    ##                                           
+    ##        'Positive' Class : 0               
+    ## 
+
+``` r
 pdp_age = 
   mod_boost %>% 
   partial(pred.var = c("age")) %>%
@@ -1596,12 +1710,27 @@ pdp_parch =
   autoplot(train = train_df, rug = TRUE)
 
 grid.arrange(pdp_age, pdp_fare, pdp_sibsp, pdp_parch, nrow = 2)
+```
 
-pdp_fin = 
-  mod_boost %>% 
-  partial(pred.var = c("fare", "age", "sib_sp")) %>%
+<img src="Final_files/figure-gfm/mod analysis-1.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
+mod_boost %>% 
+  partial(pred.var = c("sib_sp", "fare")) %>%
   autoplot(train = train_df, rug = TRUE)
+```
 
+<img src="Final_files/figure-gfm/mod analysis-2.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
+mod_boost %>% 
+  partial(pred.var = c("age", "fare")) %>%
+  autoplot(train = train_df, rug = TRUE)
+```
+
+<img src="Final_files/figure-gfm/mod analysis-3.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
 explainer = lime(train_df[, -1], mod_boost)
 set.seed(15236)
 new_obs = test_df[sample(418, 6), -c(8:9)]
@@ -1610,8 +1739,15 @@ explanation = lime::explain(new_obs,
                             n_labels = 1, 
                             n_features = 7)
 plot_features(explanation)
+```
+
+<img src="Final_files/figure-gfm/mod analysis-4.png" width="100%" style="display: block; margin: auto;" />
+
+``` r
 plot_explanations(explanation)
 ```
+
+<img src="Final_files/figure-gfm/mod analysis-5.png" width="100%" style="display: block; margin: auto;" />
 
 ## **Kaggle Competition Submission**
 

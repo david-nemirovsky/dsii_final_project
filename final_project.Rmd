@@ -2,12 +2,13 @@
 title: "Predicting Survival on the Titanic"
 author: "David Nemirovsky & Jared Klug"
 date: 5/13/21
-font-family: Garamond
+mainfont: Garamond
 output: github_document
 --- 
 
 ```{r setup, include = F}
 library(tidyverse)
+library(webshot)
 library(caret)
 library(gtsummary)
 library(vip)
@@ -18,7 +19,7 @@ library(visdat)
 library(kernlab)
 library(pdp)
 library(lime)
-library(sysfonts)
+library(gt)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -28,10 +29,8 @@ knitr::opts_chunk$set(
 )
 
 par(family = "garamond")
-font_add_google("EB Garamond")
 theme_set(theme_minimal() + theme(legend.position = "bottom", 
-                                  text = element_text(size = 8, 
-                                                      family = "EB Garamond")))
+                                  text = element_text(size = 8)))
 
 options(
   ggplot2.continuous.colour = "viridis",
@@ -102,6 +101,7 @@ eda_df =
                              Upper = "1", 
                              Middle = "2", 
                              Lower = "3"))
+
 eda_df %>% 
   tbl_summary(by = survived, 
               label = 
@@ -113,7 +113,9 @@ eda_df %>%
                   parch ~ "Number of Parents/Children on Board",
                   fare ~ "Passenger Fare", 
                   embarked ~ "Port of Embarkation")) %>% 
-  add_overall
+  add_overall %>% 
+  as_gt() %>% 
+  tab_options(table.width = pct(30), table.font.size = "small")
 
 # Examine skew and outliers of some predictors: 
 eda_df %>% 
@@ -286,7 +288,7 @@ mod_boost = train(survived ~ .,
                   verbose = F)
 tuning_plot_boost = 
   ggplot(mod_boost, highlight = T) + 
-  ggtitle("Boosting") +
+  ggtitle("AdaBoost") +
   theme(plot.title = element_text(hjust = 0.5))
 mod_boost$bestTune
 
@@ -394,10 +396,17 @@ pdp_parch =
 
 grid.arrange(pdp_age, pdp_fare, pdp_sibsp, pdp_parch, nrow = 2)
 
-pdp_fin = 
+pdp_farexsibsp = 
   mod_boost %>% 
-  partial(pred.var = c("fare", "age", "sib_sp")) %>%
+  partial(pred.var = c("sib_sp", "fare")) %>%
   autoplot(train = train_df, rug = TRUE)
+
+pdp_farexage = 
+  mod_boost %>% 
+  partial(pred.var = c("age", "fare")) %>%
+  autoplot(train = train_df, rug = TRUE)
+
+grid.arrange(pdp_farexage, pdp_farexsibsp, nrow = 1)
 
 explainer = lime(train_df[, -1], mod_boost)
 set.seed(15236)
@@ -423,9 +432,8 @@ test_res =
 submission = 
   cbind(test_id, test_res$survived) %>% 
   as.data.frame() %>% 
-  rename(PassengerId = test_pid,
+  rename(PassengerId = test_id,
          Survived = V2)
 
 write_csv(submission, "submission.csv")
 ```
-
