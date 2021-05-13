@@ -3,7 +3,7 @@ title: "Predicting Survival on the Titanic"
 author: "David Nemirovsky & Jared Klug"
 date: 5/13/21
 font-family: Garamond
-output: github_document
+output: pdf_document
 --- 
 
 ```{r setup, include = F}
@@ -223,7 +223,7 @@ eda_df %>%
 
 ## **Model Training**
 
-```{r models, message = F, warning = F}
+```{r models, message = F, warning = F, eval = F}
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
 
 set.seed(37564)
@@ -322,7 +322,7 @@ bwplot(res, metric = "ROC", main = "ROC for Repeated 10-Fold CV Using Various Mo
 
 ## **Variable Importance**
 
-```{r vip, message = F, warning = F}
+```{r vip, message = F, warning = F, eval = F}
 set.seed(37564)
 vip(mod_boost, 
     method = "permute", 
@@ -342,7 +342,7 @@ coef(mod_enet$finalModel, mod_enet$bestTune$lambda)
 
 ## **Predictions**
 
-```{r pred, message = F, warning = F}
+```{r pred, message = F, warning = F, eval = F}
 testna_df = 
   read_csv("./data/test.csv") %>% 
   janitor::clean_names() %>% 
@@ -364,7 +364,7 @@ plot(roc_boost, legacy.axes = T, print.auc = T)
 
 ## **AdaBoost Model Analysis**
 
-```{r mod analysis, message = F, warning = F}
+```{r mod analysis, message = F, warning = F, eval = F}
 cm_df = pred_boost %>% 
   as.data.frame() %>% 
   rename("survived" = ".") %>% 
@@ -412,7 +412,7 @@ plot_explanations(explanation)
 
 ## **Kaggle Competition Submission**
 
-```{r kaggle comp, message = F, warning = F}
+```{r kaggle comp, message = F, warning = F, eval = F}
 test_id = testna_df$passenger_id
 
 test_res = 
