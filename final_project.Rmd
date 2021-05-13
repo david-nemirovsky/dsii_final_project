@@ -19,6 +19,8 @@ library(pROC)
 library(visdat)
 library(kernlab)
 library(DALEX)
+library(pdp)
+library(lime)
 
 knitr::opts_chunk$set(
   fig.align = "center",
@@ -34,7 +36,7 @@ options(
   ggplot2.continuous.fill = "viridis"
 )
 
-scale_colour_discrete = scale_colour_viridis_d
+scale_color_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 
 set.seed(37564)
@@ -47,99 +49,186 @@ titanic_df =
   read_csv("./data/train.csv") %>% 
   janitor::clean_names() %>% 
   mutate(survived = fct_recode(as.factor(survived), yes = "1", no = "0"), 
+         survived = fct_relevel(survived, "yes", "no"),
          pclass = as.factor(pclass), 
          sex = as.factor(sex), 
-         embarked = as.factor(embarked))
-
-train_df = 
-  titanic_df %>% 
-  select(-c(ticket, cabin, name, passenger_id)) %>% 
-  drop_na()
-
-#Missing Data EDA:
-train_nas = 
-  titanic_df %>% 
+         embarked = as.factor(embarked)) %>% 
   select(-c(ticket, cabin, name, passenger_id))
 
-vis_miss(train_nas)
+# Missing Data EDA:
+vis_miss(titanic_df)
 
-miss_surv = train_nas %>% 
+titanic_df %>% 
+  ggplot(aes(x = age, fill = survived)) +
+  geom_density(alpha = 0.75)
+
+# Missing Survivals:
+titanic_df %>% 
   filter(is.na(age)) %>% 
   group_by(survived) %>% 
   summarise(count = n())
 
-miss_surv
-
-all_surv = train_df %>% 
+# All survivals:
+titanic_df %>% 
   group_by(survived) %>% 
   summarise(count = n())
 
-all_surv 
+# Survival percentage in NAs is similar to actual survival rate so assume missingness is not related to outcome -> MAR.
 
-#survival percentage in NAs is similar to actual survival rate so assume missingness is not related to outcome,
-#will use bagging impute to fill in missing data, embarked will be replaced by the most popular port "S"
-train_nas %>% 
+# Bagging imputation will be used to fill in missing age data, embarked will be replaced by the most popular port "S":
+
+titanic_df %>% 
   group_by(embarked) %>% 
   summarise(count = n())
 
-train_nas[is.na(train_nas$embarked),"embarked"] = "S"
+titanic_df[is.na(titanic_df$embarked),"embarked"] = "S"
 
-trainY = train_nas[1]
-trainX = train_nas[-1]
+trainX = titanic_df[-1]
+train_bag = preProcess(trainX, method = "bagImpute")
+train_imp = predict(train_bag, trainX)
+train_df = cbind(titanic_df[1], train_imp)
 
-bag_imp = preProcess(trainX, method = "bagImpute")
-imp_df = predict(bag_imp, trainX)
+# Descriptive Summary Table:
+eda_df = 
+  train_df %>% 
+  mutate(survived = fct_recode(as.factor(survived), 
+                            Survived = "yes", Died = "no"), 
+         sex = fct_recode(as.factor(sex), 
+                            Female = "female", Male = "male"), 
+         embarked = fct_recode(as.factor(embarked), 
+                               Cherbourg = "C", 
+                               Queenstown = "Q", 
+                               Southampton = "S"), 
+         pclass = fct_recode(as.factor(pclass), 
+                             Upper = "1", 
+                             Middle = "2", 
+                             Lower = "3"))
+eda_df %>% 
+  tbl_summary(by = survived, 
+              label = 
+                list(
+                  pclass ~ "Socioeconomic Status",
+                  sex ~ "Sex",
+                  age ~ "Age",
+                  sib_sp ~ "Number of Siblings/Spouse on Board",
+                  parch ~ "Number of Parents/Children on Board",
+                  fare ~ "Passenger Fare", 
+                  embarked ~ "Port of Embarkation")) %>% 
+  add_overall
 
-train_df = cbind(trainY, imp_df)
+#featurePlot(x = select(mutate(train_df, 
+#                              pclass = as.numeric(pclass), 
+#                              sex = as.numeric(sex),
+#                              embarked = as.numeric(embarked)),
+#                       pclass:embarked), 
+#            y = train_df$survived,
+#            scales = list(x = list(relation = "free"), 
+#                          y = list(relation = "free")),
+#            plot = "density", 
+#            auto.key = list(columns = 2))
 
-tbl_summary(train_df)
+eda_df %>% 
+  ggplot(aes(x = fare)) + 
+  geom_density()
 
-featurePlot(x = select(mutate(train_df, 
-                              pclass = as.numeric(pclass), 
-                              sex = as.numeric(sex),
-                              embarked = as.numeric(embarked)),
-                       pclass:embarked), 
-            y = train_df$survived,
-            scales = list(x = list(relation = "free"), 
-                          y = list(relation = "free")),
-            plot = "density", 
-            auto.key = list(columns = 2))
+eda_df %>% 
+  ggplot(aes(x = sib_sp)) + 
+  geom_density()
 
-train_df %>% 
+eda_df %>% 
+  ggplot(aes(x = parch)) + 
+  geom_density()
+
+# Survival by Age:
+plot_age = 
+  eda_df %>% 
   ggplot(aes(x = age, fill = survived)) +
-  geom_density(alpha = 0.75) + 
-  facet_grid(sex ~ pclass)
+  geom_density(alpha = 0.75) +
+  labs(x = "Age", y = "Density") +
+  scale_fill_discrete(name = "Survived")
 
-train_df %>% 
+# Survival by Fare:
+plot_fare = 
+  eda_df %>% 
   filter(fare < 100) %>% 
   ggplot(aes(x = fare, fill = survived)) +
-  geom_density(alpha = 0.75) + 
-  facet_grid(sex ~ pclass)
+  geom_density(alpha = 0.75) +
+  labs(x = "Fare", y = "Density") +
+  scale_fill_discrete(name = "Survived")
 
-train_df %>% 
-  #filter(fare < 100) %>% 
+# Survival by Number of Siblings/Spouse:
+plot_sibsp = 
+  eda_df %>% 
+  filter(sib_sp < 5) %>% 
+  ggplot(aes(x = sib_sp, fill = survived)) +
+  geom_density(alpha = 0.75) +
+  labs(x = "Number of Siblings/Spouse", y = "Density") +
+  scale_fill_discrete(name = "Survived")
+
+# Survival by Number of Parents/Children:
+plot_parch = 
+  eda_df %>% 
+  filter(parch < 4) %>% 
+  ggplot(aes(x = parch, fill = survived)) +
+  geom_density(alpha = 0.75) +
+  labs(x = "Number of Parents/Children", y = "Density") +
+  scale_fill_discrete(name = "Survived")
+
+# Survival by Sex:
+plot_sex = 
+  eda_df %>% 
+  ggplot(aes(x = sex, fill = survived)) +
+  geom_bar(color = "black", alpha = 0.75) +
+  labs(x = "Sex", y = "Count") +
+  scale_fill_discrete(name = "Survived")
+
+# Survival by Socioeconomic Status:
+plot_pclass = 
+  eda_df %>% 
+  ggplot(aes(x = pclass, fill = survived)) +
+  geom_bar(color = "black", alpha = 0.75) + 
+  labs(x = "Socioeconomic Status", y = "Count") +
+  scale_fill_discrete(name = "Survived")
+
+# Survival by Port of Embarkation:
+plot_emb = 
+  eda_df %>% 
+  ggplot(aes(x = embarked, fill = survived)) +
+  geom_bar(color = "black", alpha = 0.75) + 
+  labs(x = "Port of Embarkation", y = "Count") +
+  scale_fill_discrete(name = "Survived")
+
+layout = "
+AAABBB
+CCCDDD
+EEFFGG
+"
+plot_age + plot_fare + plot_sibsp + plot_parch + plot_sex + 
+  plot_pclass + plot_emb + plot_layout(design = layout, guides = "collect")
+
+# Survival of Age vs Fare by SES and Sex
+eda_df %>% 
+  filter(fare < 100) %>% 
   ggplot(aes(x = age, y = fare, color = survived)) +
   geom_point(alpha = 0.75) + 
-  facet_grid(sex ~ pclass)
+  facet_grid(sex ~ pclass) + 
+  labs(x = "Age", y = "Fare") +
+  scale_color_discrete(name = "Survived")
 
-train_df %>% 
-  ggplot(aes(x = age, fill = survived)) + 
-  geom_density(alpha = 0.75) + 
-  facet_grid(sex ~ embarked)
-
-train_df %>% 
-  #filter(fare < 100) %>% 
+# Survival of Age vs Fare by Embarkation and Sex
+eda_df %>% 
+  filter(fare < 100) %>% 
   ggplot(aes(x = age, y = fare, color = survived)) +
   geom_point(alpha = 0.75) + 
-  facet_grid(sex ~ embarked)
+  facet_grid(sex ~ embarked) + 
+  labs(x = "Age", y = "Fare") +
+  scale_color_discrete(name = "Survived")
 ```
 
 ## **Model Training**
 
 ```{r models, message = F, warning = F}
 ctrl = trainControl(method = "repeatedcv", summaryFunction = twoClassSummary, classProbs = T, number = 10, repeats = 5)
-
-ctrl2 = trainControl(method = "cv", summaryFunction = twoClassSummary, classProbs = T, number = 10)
 
 set.seed(37564)
 mod_enet = train(survived ~ .,
@@ -221,14 +310,14 @@ tuning_plot_svm =
   theme(plot.title = element_text(hjust = 0.5))
 mod_svm$bestTune
 
-layout = "
+layout2 = "
 AABB
 CCDD
 EEEE
 "
 tuning_plot_knn + tuning_plot_enet + 
   tuning_plot_mars + tuning_plot_svm + 
-  tuning_plot_boost + plot_layout(design = layout)
+  tuning_plot_boost + plot_layout(design = layout2)
 
 res = resamples(list(ENET = mod_enet, MARS = mod_mars, KNN = mod_knn, BOOST = mod_boost, SVM = mod_svm))
 summary(res)
@@ -259,20 +348,18 @@ coef(mod_enet$finalModel, mod_enet$bestTune$lambda)
 ## **Predictions**
 
 ```{r pred, message = F, warning = F}
-set.seed(37564)
-
 testna_df = 
   read_csv("./data/test.csv") %>% 
   janitor::clean_names() %>% 
+  select(-c(ticket, cabin, name)) %>% 
+  left_join(janitor::clean_names(read_csv("./data/titanic_results.csv"))) %>%
   mutate(pclass = as.factor(pclass), 
          sex = as.factor(sex), 
-         embarked = as.factor(embarked)) %>% 
-  select(-c(ticket, cabin, name)) %>% 
-  left_join(janitor::clean_names(read_csv("./data/titanic_results.csv")))
+         embarked = as.factor(embarked))
 
 testX = testna_df[,2:8]
-bag_imp = preProcess(testX, method = "bagImpute")
-test_df = predict(bag_imp, testX) %>% 
+test_bag = preProcess(testX, method = "bagImpute")
+test_df = predict(test_bag, testX) %>% 
   cbind(testna_df[1], testna_df[9])
 
 pred_knn = predict(mod_knn, newdata = test_df, type = "prob")[,1]
@@ -307,10 +394,9 @@ plot(roc_boost, add = T, col = 7)
 cm_df = pred_boost %>% 
   as.data.frame() %>% 
   rename("survived" = ".") %>% 
-  mutate(survived = ifelse(survived >= 0.5, 0, 1))
+  mutate(survived = as.factor(ifelse(survived >= 0.5, 1, 0)))
   
-confusionMatrix(data = as.factor(cm_df$survived), 
-                reference = as.factor(test_df$survived))
+confusionMatrix(data = cm_df$survived, reference = as.factor(test_df$survived))
 
 explainer_gbm = explain(mod_boost, 
                         label = "gbm",
