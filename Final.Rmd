@@ -28,8 +28,13 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 
+<<<<<<< HEAD
 par(family = "garamond")
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
+=======
+theme_set(theme_minimal() + theme(legend.position = "bottom", 
+                                  text = element_text(size = 8)))
+>>>>>>> 6472b340062cc1413abce6085357e32d5d696737
 
 options(
   ggplot2.continuous.colour = "viridis",
