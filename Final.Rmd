@@ -29,8 +29,7 @@ knitr::opts_chunk$set(
 )
 
 par(family = "garamond")
-theme_set(theme_minimal() + theme(legend.position = "bottom", 
-                                  text = element_text(size = 8)))
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 options(
   ggplot2.continuous.colour = "viridis",
@@ -137,7 +136,7 @@ plot_age =
   geom_density(alpha = 0.75) +
   labs(x = "Age", y = "Density") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Fare:
 plot_fare = 
@@ -147,7 +146,7 @@ plot_fare =
   geom_density(alpha = 0.75) +
   labs(x = "Fare", y = "Density") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Number of Siblings/Spouse:
 plot_sibsp = 
@@ -157,7 +156,7 @@ plot_sibsp =
   geom_density(alpha = 0.75) +
   labs(x = "Number of Siblings/Spouse", y = "Density") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Number of Parents/Children:
 plot_parch = 
@@ -167,7 +166,7 @@ plot_parch =
   geom_density(alpha = 0.75) +
   labs(x = "Number of Parents/Children", y = "Density") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Sex:
 plot_sex = 
@@ -176,7 +175,7 @@ plot_sex =
   geom_bar(color = "black", alpha = 0.75) +
   labs(x = "Sex", y = "Count") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Socioeconomic Status:
 plot_pclass = 
@@ -185,7 +184,7 @@ plot_pclass =
   geom_bar(color = "black", alpha = 0.75) + 
   labs(x = "Socioeconomic Status", y = "Count") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 # Survival by Port of Embarkation:
 plot_emb = 
@@ -194,7 +193,7 @@ plot_emb =
   geom_bar(color = "black", alpha = 0.75) + 
   labs(x = "Port of Embarkation", y = "Count") +
   scale_fill_discrete(name = "Survived") + 
-  theme(legend.title = element_blank())
+  theme(legend.title = element_blank(), text = element_text(size = 8))
 
 layout = "
 AAABBB
