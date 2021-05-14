@@ -28,7 +28,6 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 
-par(family = "garamond")
 theme_set(theme_minimal() + theme(legend.position = "bottom", 
                                   text = element_text(size = 8)))
 
